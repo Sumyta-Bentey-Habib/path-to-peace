@@ -1,35 +1,69 @@
 "use client";
 
-import Link from "next/link";
-import { Search, User } from "lucide-react";
+import NextLink from "next/link";
+import { usePathname } from "next/navigation";
+import { Bell, User, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export function Navbar() {
+  const pathname = usePathname();
+
+  const navLinks = [
+    { name: "Quran", href: "/quran" },
+    { name: "Duas", href: "/duas" },
+    { name: "Stories", href: "/stories" },
+    { name: "Blog", href: "/blog" },
+    {name: "Payer Time", href:"/prayer-times"},
+
+  ];
+
   return (
-    <nav className="sticky top-0 z-50 glassmorphism ghost-border border-x-0 border-t-0 py-4 px-6 md:px-12 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 glassmorphism ghost-border border-x-0 border-t-0 px-8 py-5 flex items-center justify-between">
       <div className="flex items-center gap-12">
-        <Link href="/" className="font-serif text-2xl font-bold text-primary">
-          Path to Peace
-        </Link>
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-sm font-medium text-primary border-b-2 border-secondary pb-0.5">Home</Link>
-          <Link href="/about" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About</Link>
-          <Link href="/contact" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Contact</Link>
+        <NextLink href="/" className="text-2xl font-serif font-bold text-primary tracking-tight">
+          Path to <span className="text-primary/70 italic">Peace</span>
+        </NextLink>
+
+        <div className="hidden lg:flex items-center gap-10">
+          {navLinks.map((link) => (
+            <NextLink
+              key={link.name}
+              href={link.href}
+              className={cn(
+                "text-sm font-medium transition-all duration-300 relative py-1",
+                pathname === link.href
+                  ? "text-primary font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-primary"
+                  : "text-on-surface-variant/70 hover:text-primary"
+              )}
+            >
+              {link.name}
+            </NextLink>
+          ))}
         </div>
       </div>
-      
-      <div className="flex items-center gap-6">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-          <Input 
-            placeholder="Search wisdom..." 
-            className="bg-surface-container-highest/50 focus:bg-surface-container-lowest focus:ring-1 focus:ring-surface-tint pl-10 pr-4 py-2 rounded-full text-sm outline-none transition-all w-48 md:w-64 border-0"
-          />
+
+      <div className="flex items-center gap-5">
+        <div className="hidden md:flex items-center space-x-3 pr-4 border-r border-outline-variant/10">
+          <NextLink href="/feeling-tool">
+            <Button variant="outline" className="bg-secondary-container/20 text-on-secondary-container border-none hover:bg-secondary-container/40 rounded-xl space-x-2 text-xs font-bold px-4">
+              <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+              <span>Feeling Tool</span>
+            </Button>
+          </NextLink>
         </div>
-        <Button variant="ghost" size="icon" className="text-primary hover:bg-surface-container-low rounded-full transition-all">
-          <User className="w-5 h-5" />
-        </Button>
+
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
+            <Bell className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
+            <User className="w-5 h-5 bg-on-surface-variant/10 p-1.5 rounded-full" />
+          </Button>
+          <Button variant="ghost" size="icon" className="lg:hidden rounded-full text-on-surface-variant">
+            <LayoutGrid className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </nav>
   );

@@ -1,0 +1,53 @@
+{
+  "categories": [
+    "All Supplications",
+    "Morning & Evening",
+    "Protection & Safety",
+    "Ease in Hardship",
+    "Travel & Journey",
+    "Health & Healing",
+    "Gratitude"
+  ],
+  "duas": [
+    {
+      "id": 1,
+      "category": "Ease in Hardship",
+      "title": "Dua of Prophet Yunus (AS)",
+      "description": "Recited for relief from distress and overwhelming sadness.",
+      "arabic": "لَّا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ",
+      "transliteration": "Lā ilāha illā Anta, subḥānaka innī kuntu minaẓ-ẓālimīn.",
+      "meaning": "\"There is no deity except You; exalted are You. Indeed, I have been of the wrongdoers.\"",
+      "reference": "Surah Al-Anbiya, 21:87"
+    },
+    {
+      "id": 2,
+      "category": "Morning & Evening",
+      "title": "Dua for Well-being",
+      "description": "A comprehensive prayer for protection and wellness in all affairs.",
+      "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَافِيَةَ فِي الدُّنْيَا وَالآخِرَةِ",
+      "transliteration": "Allāhumma innī as’aluka al-‘āfiyata fid-dunyā wal-ākhirah.",
+      "meaning": "\"O Allah, I ask You for well-being in this world and the Hereafter.\"",
+      "reference": "Sunan Abi Dawud"
+    },
+    {
+      "id": 3,
+      "category": "Knowledge",
+      "title": "Supplication for Knowledge",
+      "description": "From the Quran, seeking an increase in understanding and wisdom.",
+      "arabic": "رَبِّ زِدْنِي عِلْمًا",
+      "transliteration": "Rabbi zidnī ‘ilmā.",
+      "meaning": "\"My Lord, increase me in knowledge.\"",
+      "reference": "Surah Ta-Ha, 20:114"
+    },
+    {
+      "id": 4,
+      "category": "Gratitude",
+      "title": "Gratefulness to Allah",
+      "description": "A prayer to express deep gratitude for His infinite blessings.",
+      "arabic": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "transliteration": "Al-ḥamdu lillāhi rabbil-‘ālamīn.",
+      "meaning": "\"Praise be to Allah, Lord of all the worlds.\"",
+      "reference": "Surah Al-Fatihah, 1:2"
+    }
+  ]
+}

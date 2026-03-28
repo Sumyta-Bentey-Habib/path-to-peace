@@ -1,0 +1,47 @@
+[
+  {
+    "id": 18,
+    "number": "018",
+    "name": "Al-Kahf",
+    "englishName": "THE CAVE",
+    "arabicName": "الكهف",
+    "revelationType": "Meccan",
+    "numberOfAyahs": 110
+  },
+  {
+    "id": 19,
+    "number": "019",
+    "name": "Maryam",
+    "englishName": "MARY",
+    "arabicName": "مريم",
+    "revelationType": "Meccan",
+    "numberOfAyahs": 98
+  },
+  {
+    "id": 20,
+    "number": "020",
+    "name": "Ta-Ha",
+    "englishName": "TA-HA",
+    "arabicName": "طه",
+    "revelationType": "Meccan",
+    "numberOfAyahs": 135
+  },
+  {
+    "id": 21,
+    "number": "021",
+    "name": "Al-Anbiya",
+    "englishName": "THE PROPHETS",
+    "arabicName": "الأنبياء",
+    "revelationType": "Meccan",
+    "numberOfAyahs": 112
+  },
+  {
+    "id": 22,
+    "number": "022",
+    "name": "Al-Hajj",
+    "englishName": "THE PILGRIMAGE",
+    "arabicName": "الحج",
+    "revelationType": "Medinan",
+    "numberOfAyahs": 78
+  }
+]

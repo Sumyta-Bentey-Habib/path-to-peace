@@ -1,0 +1,32 @@
+{
+  "id": 18,
+  "name": "Al-Kahf",
+  "englishName": "The Cave",
+  "arabicName": "الكهف",
+  "revelationType": "Meccan",
+  "numberOfAyahs": 110,
+  "bismillah": {
+    "arabic": "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
+    "translation": "In the name of Allah, the Entirely Merciful, the Especially Merciful"
+  },
+  "ayahs": [
+    {
+      "number": 1,
+      "arabic": "ٱلْحَمْدُ لِلَّهِ ٱلَّذِىٓ أَنزَلَ عَلَىٰ عَبْدِهِ ٱلْكِتَـٰبَ وَلَمْ يَجْعَل لَّهُۥ عِوَجَا ۜ",
+      "translation": "[All] praise is [due] to Allah, who has sent down upon His Servant the Book and has not made therein any deviance.",
+      "translator": "Sahih International"
+    },
+    {
+      "number": 2,
+      "arabic": "قَيِّمًا لِّيُنذِرَ بَأْسًا شَدِيدًا مِّن لَّدُنْهُ وَيُبَشِّرَ ٱلْمُؤْمِنِينَ ٱلَّذِينَ يَعْمَلُونَ ٱلصَّـٰلِحَـٰتِ أَنَّ لَهُمْ أَجْرًا حَسَنًا",
+      "translation": "[He has made it] straight to warn of severe punishment from Him and to give good tidings to the believers who do righteous deeds that they will have a good reward",
+      "translator": "Sahih International"
+    },
+    {
+      "number": 3,
+      "arabic": "مَّـٰكِثِينَ فِيهِ أَبَدًا",
+      "translation": "In which they will remain forever",
+      "translator": "Sahih International"
+    }
+  ]
+}

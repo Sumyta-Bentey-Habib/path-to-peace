@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Serif, Plus_Jakarta_Sans, Geist } from "next/font/google";
+import { Noto_Serif, Plus_Jakarta_Sans, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,16 @@ const notoSerif = Noto_Serif({
   weight: ["400", "700"],
 });
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const notoArabic = Noto_Sans_Arabic({
+  variable: "--font-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "Path to Peace | Meditative Spiritual Sanctuary",
@@ -24,9 +33,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", notoSerif.variable, "font-sans", geist.variable)}
+      className={cn("h-full", "antialiased", notoSerif.variable, plusJakarta.variable, notoArabic.variable)}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }

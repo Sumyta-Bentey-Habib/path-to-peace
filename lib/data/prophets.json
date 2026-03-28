@@ -1,0 +1,95 @@
+[
+  {
+    "id": "muhammad",
+    "name": "Muhammad",
+    "arabicName": "محمد",
+    "salutation": "صلى الله عليه وسلم",
+    "title": "THE FINAL MESSENGER",
+    "subtitle": "Sent as a mercy to the worlds, the final Prophet received the Quran and established the path of perfect character and devotion to the One Creator.",
+    "era": "The Final Message",
+    "isFeatured": true,
+    "link": "/stories/muhammad",
+    "icon": "final-messenger"
+  },
+  {
+    "id": "adam",
+    "name": "Adam",
+    "arabicName": "آدم",
+    "subtitle": "The first human and Prophet, created from clay and honored with divine knowledge in the Garden of Eden.",
+    "era": "Early Creation",
+    "icon": "mountain",
+    "link": "/stories/adam"
+  },
+  {
+    "id": "nuh",
+    "name": "Nuh",
+    "arabicName": "نوح",
+    "subtitle": "The patient caller who built the Ark by divine command to save the believers from the Great Flood.",
+    "era": "Early Creation",
+    "icon": "ship",
+    "link": "/stories/nuh"
+  },
+  {
+    "id": "ibrahim",
+    "name": "Ibrahim",
+    "arabicName": "إبراهيم",
+    "subtitle": "The Friend of Allah, father of Prophets, and the one who rebuilt the Kaaba with his son Isma'il.",
+    "era": "Early Creation",
+    "icon": "kaaba",
+    "link": "/stories/ibrahim"
+  },
+  {
+    "id": "musa",
+    "name": "Musa",
+    "arabicName": "موسى",
+    "subtitle": "The one who spoke with Allah on Mount Sinai and led the Children of Israel out of Egyptian tyranny.",
+    "era": "Banu Isra'il",
+    "icon": "tablets",
+    "link": "/stories/musa"
+  },
+  {
+    "id": "isa",
+    "name": "Isa",
+    "arabicName": "عيسى",
+    "subtitle": "The Messiah born of Maryam, who performed great miracles by Allah's leave and brought the Injeel.",
+    "era": "Banu Isra'il",
+    "icon": "sparkles",
+    "link": "/stories/isa"
+  },
+  {
+    "id": "yusuf",
+    "name": "Yusuf",
+    "arabicName": "يوسف",
+    "subtitle": "The Prophet of beauty and patience, whose life journey from the well to the throne is the best of stories.",
+    "era": "Banu Isra'il",
+    "icon": "star",
+    "link": "/stories/yusuf"
+  },
+  {
+    "id": "ayyub",
+    "name": "Ayyub",
+    "arabicName": "أيوب",
+    "subtitle": "The pinnacle of patience, who remained steadfast in his devotion through years of illness and loss.",
+    "era": "Banu Isra'il",
+    "icon": "cross",
+    "link": "/stories/ayyub"
+  },
+  {
+    "id": "yunus",
+    "name": "Yunus",
+    "arabicName": "يونس",
+    "subtitle": "The companion of the whale, whose sincere repentance within the deep darkness brought divine salvation.",
+    "era": "Early Creation",
+    "icon": "droplet",
+    "link": "/stories/yunus"
+  },
+  {
+    "id": "idris",
+    "name": "Idris",
+    "arabicName": "إدريس",
+    "subtitle": "The ancient Prophet known for his wisdom, truthfulness, and his mastery of writing and science.",
+    "era": "Early Creation",
+    "icon": "book",
+    "link": "/stories/idris"
+  }
+]

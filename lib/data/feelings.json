@@ -1,0 +1,96 @@
+{
+  "feelings": [
+    {
+      "id": "sad",
+      "label": "Sad",
+      "icon": "Frown",
+      "quran": {
+        "arabic": "وَلَا تَهِنُوا وَلَا تَحْزَنُوا وَأَنْتُمُ الْأَعْلَوْنَ إِنْ كُنْتُمْ مُؤْمِنِينَ",
+        "translation": "So do not weaken and do not grieve, and you will be superior if you are [true] believers.",
+        "reference": "Surah Ali 'Imran, 3:139"
+      },
+      "dua": {
+        "arabic": "إِنَّمَا أَشْكُو بَثِّي وَحُزْنِي إِلَى اللَّهِ",
+        "translation": "I only complain of my suffering and my grief to Allah.",
+        "reference": "Surah Yusuf, 12:86"
+      },
+      "community": [
+        { "name": "Anonymous", "time": "5m ago", "text": "Struggling with some personal loss. Please keep me in your prayers.", "tag": "Sad", "count": 24, "type": "Silent Prayers" },
+        { "name": "Anonymous", "time": "1h ago", "text": "May Allah grant peace to everyone going through a hard time.", "tag": "Sad", "count": 45, "type": "Likes" }
+      ]
+    },
+    {
+      "id": "lonely",
+      "label": "Lonely",
+      "icon": "User",
+      "quran": {
+        "arabic": "وَنَحْنُ أَقْرَبُ إِلَيْهِ مِنْ حَبْلِ الْوَرِيدِ",
+        "translation": "And We are closer to him than [his] jugular vein.",
+        "reference": "Surah Qaf, 50:16"
+      },
+      "dua": {
+        "arabic": "رَبِّ لَا تَذَرْنِي فَرْدًا وَأَنتَ خَيْرُ الْوَارِثِينَ",
+        "translation": "My Lord, do not leave me alone [with no heir], while you are the best of inheritors.",
+        "reference": "Surah Al-Anbiya, 21:89"
+      },
+      "community": [
+        { "name": "Anonymous", "time": "12m ago", "text": "Feeling a bit isolated in a new city. Remembering Allah's presence.", "tag": "Lonely", "count": 18, "type": "Silent Prayers" }
+      ]
+    },
+    {
+      "id": "anxious",
+      "label": "Anxious",
+      "icon": "Wind",
+      "quran": {
+        "arabic": "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا • إِنَّ مَعَ الْعُسْرِ يُسْرًا",
+        "translation": "\"For indeed, with hardship [will be] ease. Indeed, with hardship [will be] ease.\"",
+        "reference": "Surah Ash-Sharh, 94:5-6"
+      },
+      "dua": {
+        "arabic": "اَللَّهُمَّ إِنِّي أَعُوْذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ",
+        "translation": "\"O Allah, I seek refuge in You from anxiety and sorrow, from inability and laziness, from miserliness and cowardice...\"",
+        "reference": "Sahih Bukhari"
+      },
+      "community": [
+        { "name": "Anonymous", "time": "2m ago", "text": "Feeling a bit overwhelmed with exams, asking for prayers.", "tag": "Anxious", "count": 12, "type": "Silent Prayers" },
+        { "name": "Anonymous", "time": "42m ago", "text": "Anxiety is high today, but trust in Allah is higher.", "tag": "Anxious", "count": 28, "type": "Silent Prayers" }
+      ]
+    },
+    {
+      "id": "grateful",
+      "label": "Grateful",
+      "icon": "Heart",
+      "quran": {
+        "arabic": "لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ",
+        "translation": "If you are grateful, I will surely increase you [in favor].",
+        "reference": "Surah Ibrahim, 14:7"
+      },
+      "dua": {
+        "arabic": "الْحَمْدُ لِلَّهِ حَمْدًا كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ",
+        "translation": "Praise be to Allah, many, pure, blessed praises.",
+        "reference": "Sunan Abi Dawud"
+      },
+      "community": [
+        { "name": "Anonymous", "time": "15m ago", "text": "Alhamdulillah for a peaceful morning by the window.", "tag": "Grateful", "count": 45, "type": "Likes" }
+      ]
+    },
+    {
+      "id": "patient",
+      "label": "Patient",
+      "icon": "Anchor",
+      "quran": {
+        "arabic": "إِنَّ اللَّهَ مَعَ الصَّابِرِينَ",
+        "translation": "Indeed, Allah is with the patient.",
+        "reference": "Surah Al-Baqarah, 2:153"
+      },
+      "dua": {
+        "arabic": "رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا",
+        "translation": "Our Lord, pour upon us patience and plant firmly our feet.",
+        "reference": "Surah Al-Baqarah, 2:250"
+      },
+      "community": [
+        { "name": "Anonymous", "time": "30m ago", "text": "Waiting for a medical result. Patiently trusting His plan.", "tag": "Patient", "count": 52, "type": "Silent Prayers" }
+      ]
+    }
+  ]
+}

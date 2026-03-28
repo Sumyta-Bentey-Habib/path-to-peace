@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export function Hero() {
   return (
@@ -21,10 +22,16 @@ export function Hero() {
           A timeless reminder attributed to the sages, inviting us to the inward journey of peace and discovery.
         </p>
         <div className="flex flex-wrap items-center gap-8">
-          <Button size="lg" className="bg-primary text-on-primary px-8 py-7 h-auto rounded-md font-sans font-semibold flex items-center gap-3 hover:bg-primary-container transition-all shadow-meditative group border-0">
+          <Link 
+            href="/stories" 
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "bg-primary text-on-primary px-8 py-7 h-auto rounded-md font-sans font-semibold flex items-center gap-3 hover:bg-primary-container transition-all shadow-meditative group border-0 text-base"
+            )}
+          >
             Begin Your Journey
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Button>
+          </Link>
           <Link href="/resources" className="text-primary font-sans font-semibold border-b-2 border-secondary/30 hover:border-secondary transition-all pb-1 leading-none">
             Explore Resources
           </Link>
