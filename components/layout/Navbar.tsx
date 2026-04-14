@@ -14,7 +14,7 @@ export function Navbar() {
     { name: "Duas", href: "/duas" },
     { name: "Stories", href: "/stories" },
     { name: "Blog", href: "/blog" },
-    {name: "Payer Time", href:"/prayer-times"},
+    {name: "Prayer Time", href:"/prayer-times"},
 
   ];
 

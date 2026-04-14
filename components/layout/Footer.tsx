@@ -53,6 +53,9 @@ export function Footer() {
             <Link href="/stories" className="hover:text-primary transition-colors">
               Stories
             </Link>
+            <Link href="/login" className="hover:text-primary font-bold transition-colors">
+              Guardian Portal
+            </Link>
           </div>
         </div>
 

@@ -45,8 +45,6 @@ export default function PrayerTimesPage() {
         {/* Dynamic Qibla Direction CTA */}
         <QiblaCard direction={118.98} />
 
-        {/* Decorative Image (Optional but consistent) */}
-        {/* <DecorativeImage /> */}
 
       </main>
 
