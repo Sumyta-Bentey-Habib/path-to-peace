@@ -1,0 +1,17 @@
+export const styles = {
+  notFoundPage: "min-h-screen flex items-center justify-center bg-surface relative overflow-hidden font-sans",
+  bgOrnament1: "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl animate-pulse",
+  bgOrnament2: "absolute top-1/4 right-1/4 w-96 h-96 bg-secondary-container/10 rounded-full blur-3xl animate-bounce duration-[10000ms]",
+  starOverlay: "absolute inset-0 star-pattern opacity-5 pointer-events-none",
+  contentWrapper: "relative z-10 text-center px-6 max-w-2xl animate-in fade-in zoom-in duration-1000",
+  iconBox: "inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/5 border border-primary/10 mb-8 relative",
+  windIcon: "text-primary w-10 h-10 animate-bounce duration-[3000ms]",
+  sparkleIcon: "absolute top-0 right-0 text-secondary-container w-6 h-6 animate-pulse",
+  errorCode: "text-8xl font-serif font-bold text-primary mb-4 opacity-10",
+  errorTitle: "text-4xl font-serif font-bold text-primary mb-6 -mt-12",
+  errorMsg: "text-xl text-on-surface-variant font-medium mb-12 leading-relaxed italic",
+  btnContainer: "flex flex-col sm:flex-row items-center justify-center gap-4",
+  primaryBtn: "w-full sm:w-auto bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-primary-container transition-all shadow-lg hover:shadow-primary/20 group",
+  secondaryBtn: "w-full sm:w-auto bg-surface border border-outline-variant/30 text-primary px-8 py-4 rounded-2xl font-bold hover:bg-surface-container-low transition-all",
+  footerOrnament: "mt-20 flex items-center justify-center gap-3 text-primary/30",
+};
