@@ -14,8 +14,7 @@ export function Navbar() {
     { name: "Duas", href: "/duas" },
     { name: "Stories", href: "/stories" },
     { name: "Blog", href: "/blog" },
-    {name: "Prayer Time", href:"/prayer-times"},
-
+    { name: "Prayer Time", href: "/prayer-times" },
   ];
 
   return (
@@ -53,13 +52,30 @@ export function Navbar() {
           </NextLink>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
             <Bell className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
-            <User className="w-5 h-5 bg-on-surface-variant/10 p-1.5 rounded-full" />
-          </Button>
+          
+          <div className="hidden sm:flex items-center space-x-2 ml-2">
+            <NextLink href="/login">
+              <Button variant="ghost" className="text-primary font-bold hover:bg-primary/5 rounded-xl px-5 transition-all">
+                Login
+              </Button>
+            </NextLink>
+            <NextLink href="/register">
+              <Button className="bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-6 font-bold shadow-lg shadow-primary/10 transition-all">
+                Join Sanctuary
+              </Button>
+            </NextLink>
+          </div>
+
+          <NextLink href="/login" className="sm:hidden">
+            <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
+              <User className="w-5 h-5 bg-on-surface-variant/10 p-1.5 rounded-full" />
+            </Button>
+          </NextLink>
+          
           <Button variant="ghost" size="icon" className="lg:hidden rounded-full text-on-surface-variant">
             <LayoutGrid className="w-5 h-5" />
           </Button>
