@@ -1,23 +1,23 @@
 {
   "location": {
-    "city": "London",
-    "country": "United Kingdom",
-    "timezone": "Europe/London",
-    "latitude": 51.5074,
-    "longitude": -0.1278
+    "city": "Khulna",
+    "country": "Bangladesh",
+    "timezone": "Asia/Dhaka",
+    "latitude": 22.8456,
+    "longitude": 89.5403
   },
   "date": {
-    "gregorian": "Saturday, 28 March 2026",
-    "hijri": "9 Shawwal 1447 AH"
+    "gregorian": "Friday, 24 April 2026",
+    "hijri": "6 Dhul-Qadah 1447 AH"
   },
-  "calculation_method": "Islamic Society of North America (ISNA)",
+  "calculation_method": "Islamic Foundation Bangladesh",
   "times": [
-    { "id": "fajr", "name": "Fajr", "time": "04:12", "icon": "Sunrise" },
-    { "id": "sunrise", "name": "Sunrise", "time": "05:48", "icon": "Sun" },
-    { "id": "dhuhr", "name": "Dhuhr", "time": "12:15", "icon": "SunDim" },
-    { "id": "asr", "name": "Asr", "time": "15:42", "icon": "SunMedium" },
-    { "id": "maghrib", "name": "Maghrib", "time": "18:32", "icon": "Sunset" },
-    { "id": "isha", "name": "Isha", "time": "20:05", "icon": "Moon" }
+    { "id": "fajr", "name": "Fajr", "time": "04:16", "icon": "Sunrise" },
+    { "id": "sunrise", "name": "Sunrise", "time": "05:34", "icon": "Sun" },
+    { "id": "dhuhr", "name": "Dhuhr", "time": "12:00", "icon": "SunDim" },
+    { "id": "asr", "name": "Asr", "time": "15:25", "icon": "SunMedium" },
+    { "id": "maghrib", "name": "Maghrib", "time": "18:26", "icon": "Sunset" },
+    { "id": "isha", "name": "Isha", "time": "19:45", "icon": "Moon" }
   ],
-  "qibla_direction": 118.98
+  "qibla_direction": 278.3
 }
