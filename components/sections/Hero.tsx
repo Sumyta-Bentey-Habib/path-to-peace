@@ -52,9 +52,9 @@ export function Hero() {
          </div>
          
          {/* Floating Wisdom Card */}
-         <div className="absolute -bottom-8 -left-8 md:-left-12 bg-surface-container-lowest p-6 rounded-xl shadow-meditative max-w-[280px] glassmorphism ghost-border">
-            <h4 className="text-secondary font-serif italic text-sm mb-2 font-bold">Wisdom of the Day</h4>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
+         <div className="absolute -bottom-8 -left-8 md:-left-12 bg-surface-container-lowest/95 backdrop-blur-xl p-6 rounded-2xl shadow-meditative max-w-[280px] border border-primary/5">
+            <h4 className="text-secondary font-serif italic text-sm mb-2 font-bold tracking-wide">Wisdom of the Day</h4>
+            <p className="text-sm text-primary/80 leading-relaxed font-medium">
               &quot;The soul is like a mirror; the more you polish it with prayer, the more it reflects Divine light.&quot;
             </p>
          </div>
