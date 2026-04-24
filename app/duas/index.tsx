@@ -15,8 +15,6 @@ export default function LibraryOfDuasUI() {
     categories,
     selectedCategory,
     setSelectedCategory,
-    searchQuery,
-    setSearchQuery,
     filteredDuas,
   } = useDuas();
 
@@ -25,10 +23,7 @@ export default function LibraryOfDuasUI() {
       <Navbar />
 
       <main className={styles.main}>
-        <DuaHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
+        <DuaHeader />
 
         <DuaCategories
           categories={categories}
@@ -53,9 +48,9 @@ export default function LibraryOfDuasUI() {
             ))
           ) : (
             <div className={styles.noResults}>
-              <p className="text-2xl font-serif italic text-primary/40">No supplications found matching your search.</p>
+              <p className="text-2xl font-serif italic text-primary/40">No supplications found in this category.</p>
               <button 
-                onClick={() => { setSearchQuery(""); setSelectedCategory("All Supplications"); }}
+                onClick={() => { setSelectedCategory("All Supplications"); }}
                 className={styles.clearFiltersBtn}
               >
                 Clear Filters

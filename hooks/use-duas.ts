@@ -16,7 +16,6 @@ export interface Dua {
 
 export function useDuas() {
   const [selectedCategory, setSelectedCategory] = useState("All Supplications");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const categories = duasData.categories;
   const allDuas = (duasData.duas as Dua[]);
@@ -25,21 +24,15 @@ export function useDuas() {
     return allDuas.filter((dua) => {
       const matchesCategory =
         selectedCategory === "All Supplications" || dua.category === selectedCategory;
-      const matchesSearch =
-        dua.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dua.meaning.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dua.category.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return matchesCategory && matchesSearch;
+      return matchesCategory;
     });
-  }, [selectedCategory, searchQuery, allDuas]);
+  }, [selectedCategory, allDuas]);
 
   return {
     categories,
     selectedCategory,
     setSelectedCategory,
-    searchQuery,
-    setSearchQuery,
     filteredDuas,
   };
 }
