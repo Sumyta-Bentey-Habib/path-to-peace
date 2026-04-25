@@ -21,6 +21,15 @@
     "link": "/stories/adam"
   },
   {
+    "id": "idris",
+    "name": "Idris",
+    "arabicName": "إدريس",
+    "subtitle": "The ancient Prophet known for his wisdom, truthfulness, and his mastery of writing and science.",
+    "era": "Early Creation",
+    "icon": "book",
+    "link": "/stories/idris"
+  },
+  {
     "id": "nuh",
     "name": "Nuh",
     "arabicName": "نوح",
@@ -28,6 +37,24 @@
     "era": "Early Creation",
     "icon": "ship",
     "link": "/stories/nuh"
+  },
+  {
+    "id": "hud",
+    "name": "Hud",
+    "arabicName": "هود",
+    "subtitle": "Sent to the people of 'Ad, he called them to worship Allah alone and abandon their pride and idolatry.",
+    "era": "Early Creation",
+    "icon": "wind",
+    "link": "/stories/hud"
+  },
+  {
+    "id": "salih",
+    "name": "Salih",
+    "arabicName": "صالح",
+    "subtitle": "The Prophet sent to Thamud, whose miracle of the she-camel was a test for his people's faith.",
+    "era": "Early Creation",
+    "icon": "camel",
+    "link": "/stories/salih"
   },
   {
     "id": "ibrahim",
@@ -39,22 +66,40 @@
     "link": "/stories/ibrahim"
   },
   {
-    "id": "musa",
-    "name": "Musa",
-    "arabicName": "موسى",
-    "subtitle": "The one who spoke with Allah on Mount Sinai and led the Children of Israel out of Egyptian tyranny.",
-    "era": "Banu Isra'il",
-    "icon": "tablets",
-    "link": "/stories/musa"
+    "id": "lut",
+    "name": "Lut",
+    "arabicName": "لوط",
+    "subtitle": "The nephew of Ibrahim who was sent to guide his people away from immorality and towards righteousness.",
+    "era": "Early Creation",
+    "icon": "city",
+    "link": "/stories/lut"
   },
   {
-    "id": "isa",
-    "name": "Isa",
-    "arabicName": "عيسى",
-    "subtitle": "The Messiah born of Maryam, who performed great miracles by Allah's leave and brought the Injeel.",
+    "id": "ismail",
+    "name": "Isma'il",
+    "arabicName": "إسماعيل",
+    "subtitle": "The son of Ibrahim who patiently submitted to Allah's command and helped build the Holy Kaaba.",
+    "era": "Early Creation",
+    "icon": "well",
+    "link": "/stories/ismail"
+  },
+  {
+    "id": "ishaq",
+    "name": "Ishaq",
+    "arabicName": "إسحاق",
+    "subtitle": "The second son of Ibrahim, a Prophet of great wisdom whose lineage produced many future Messengers.",
+    "era": "Early Creation",
+    "icon": "family",
+    "link": "/stories/ishaq"
+  },
+  {
+    "id": "yaqub",
+    "name": "Ya'qub",
+    "arabicName": "يعقوب",
+    "subtitle": "Also known as Israel, he was a Prophet of immense patience and the father of the twelve tribes.",
     "era": "Banu Isra'il",
-    "icon": "sparkles",
-    "link": "/stories/isa"
+    "icon": "tribe",
+    "link": "/stories/yaqub"
   },
   {
     "id": "yusuf",
@@ -75,21 +120,151 @@
     "link": "/stories/ayyub"
   },
   {
+    "id": "shuayb",
+    "name": "Shu'ayb",
+    "arabicName": "شعيب",
+    "subtitle": "The orator of the Prophets, sent to Midian to call for justice in trade and worship of the One God.",
+    "era": "Banu Isra'il",
+    "icon": "scale",
+    "link": "/stories/shuayb"
+  },
+  {
+    "id": "musa",
+    "name": "Musa",
+    "arabicName": "موسى",
+    "subtitle": "The one who spoke with Allah on Mount Sinai and led the Children of Israel out of Egyptian tyranny.",
+    "era": "Banu Isra'il",
+    "icon": "tablets",
+    "link": "/stories/musa"
+  },
+  {
+    "id": "harun",
+    "name": "Harun",
+    "arabicName": "هارون",
+    "subtitle": "The brother of Musa, known for his eloquence and his role as a supporter in the mission to Pharaoh.",
+    "era": "Banu Isra'il",
+    "icon": "mic",
+    "link": "/stories/harun"
+  },
+  {
+    "id": "dhul-kifl",
+    "name": "Dhul-Kifl",
+    "arabicName": "ذو الكفل",
+    "subtitle": "A Prophet of exceptional endurance and faithfulness, mentioned in the Quran as one of the steadfast.",
+    "era": "Banu Isra'il",
+    "icon": "shield",
+    "link": "/stories/dhul-kifl"
+  },
+  {
+    "id": "dawud",
+    "name": "Dawud",
+    "arabicName": "داوود",
+    "subtitle": "The Prophet-King who was given the Zabur and blessed with a beautiful voice that made the mountains echo.",
+    "era": "Banu Isra'il",
+    "icon": "music",
+    "link": "/stories/dawud"
+  },
+  {
+    "id": "sulayman",
+    "name": "Sulayman",
+    "arabicName": "سليمان",
+    "subtitle": "The wise King and Prophet who was given power over the wind and the ability to speak to animals.",
+    "era": "Banu Isra'il",
+    "icon": "crown",
+    "link": "/stories/sulayman"
+  },
+  {
+    "id": "ilyas",
+    "name": "Ilyas",
+    "arabicName": "إلياس",
+    "subtitle": "A Prophet who called his people to abandon the worship of Ba'al and return to the worship of Allah.",
+    "era": "Banu Isra'il",
+    "icon": "fire",
+    "link": "/stories/ilyas"
+  },
+  {
+    "id": "al-yasa",
+    "name": "Al-Yasa",
+    "arabicName": "اليسع",
+    "subtitle": "The successor to Ilyas, he continued the mission of guidance among the Children of Israel.",
+    "era": "Banu Isra'il",
+    "icon": "path",
+    "link": "/stories/al-yasa"
+  },
+  {
     "id": "yunus",
     "name": "Yunus",
     "arabicName": "يونس",
     "subtitle": "The companion of the whale, whose sincere repentance within the deep darkness brought divine salvation.",
-    "era": "Early Creation",
+    "era": "Banu Isra'il",
     "icon": "droplet",
     "link": "/stories/yunus"
   },
   {
-    "id": "idris",
-    "name": "Idris",
-    "arabicName": "إدريس",
-    "subtitle": "The ancient Prophet known for his wisdom, truthfulness, and his mastery of writing and science.",
-    "era": "Early Creation",
-    "icon": "book",
-    "link": "/stories/idris"
+    "id": "zakariyya",
+    "name": "Zakariyya",
+    "arabicName": "زكريا",
+    "subtitle": "The guardian of Maryam and a Prophet of great faith who was blessed with a son, Yahya, in his old age.",
+    "era": "Banu Isra'il",
+    "icon": "temple",
+    "link": "/stories/zakariyya"
+  },
+  {
+    "id": "yahya",
+    "name": "Yahya",
+    "arabicName": "يحيى",
+    "subtitle": "A Prophet of wisdom and purity from childhood, who confirmed the word from Allah and prepared the way for Isa.",
+    "era": "Banu Isra'il",
+    "icon": "leaf",
+    "link": "/stories/yahya"
+  },
+  {
+    "id": "isa",
+    "name": "Isa",
+    "arabicName": "عيسى",
+    "subtitle": "The Messiah born of Maryam, who performed great miracles by Allah's leave and brought the Injeel.",
+    "era": "Banu Isra'il",
+    "icon": "sparkles",
+    "link": "/stories/isa"
+  },
+  {
+    "id": "abu-bakr",
+    "name": "Abu Bakr as-Siddiq",
+    "arabicName": "أبو بكر الصديق",
+    "title": "THE FIRST KHALIFA",
+    "subtitle": "The closest companion of the Prophet, known for his unwavering truthfulness and sacrifice for Islam.",
+    "era": "Rashidun Caliphate",
+    "icon": "first-caliph",
+    "link": "/stories/abu-bakr"
+  },
+  {
+    "id": "umar",
+    "name": "Umar ibn al-Khattab",
+    "arabicName": "عمر بن الخطاب",
+    "title": "AL-FAROOQ",
+    "subtitle": "The second Khalifa, a leader of justice and strength who expanded the Islamic state with wisdom and humility.",
+    "era": "Rashidun Caliphate",
+    "icon": "justice",
+    "link": "/stories/umar"
+  },
+  {
+    "id": "uthman",
+    "name": "Uthman ibn Affan",
+    "arabicName": "عثمان بن عفان",
+    "title": "DHUN-NURAYN",
+    "subtitle": "The third Khalifa, known for his extreme modesty, generosity, and the compilation of the Quran into its final form.",
+    "era": "Rashidun Caliphate",
+    "icon": "generosity",
+    "link": "/stories/uthman"
+  },
+  {
+    "id": "ali",
+    "name": "Ali ibn Abi Talib",
+    "arabicName": "علي بن أبي طالب",
+    "title": "ASADULLAH",
+    "subtitle": "The fourth Khalifa, the gate to the city of knowledge, and a warrior of unparalleled bravery and spiritual depth.",
+    "era": "Rashidun Caliphate",
+    "icon": "sword",
+    "link": "/stories/ali"
   }
 ]
