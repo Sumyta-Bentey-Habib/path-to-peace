@@ -6,6 +6,7 @@ import { ArrowRight, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { UpcomingPrayer } from "./UpcomingPrayer";
 
 export function Hero() {
   return (
@@ -38,7 +39,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="relative aspect-4/5 md:aspect-auto md:h-[600px] w-full animate-in fade-in slide-in-from-right duration-1000">
+      <div className="relative aspect-4/5 md:aspect-auto md:h-[500px] w-full animate-in fade-in slide-in-from-right duration-1000">
          <div className="absolute -inset-4 bg-primary/5 rounded-4xl -rotate-2"></div>
          <div className="relative h-full w-full rounded-3xl overflow-hidden shadow-2xl">
             <Image 
@@ -51,11 +52,15 @@ export function Hero() {
             <div className="absolute inset-0 bg-linear-to-t from-primary/40 to-transparent"></div>
          </div>
          
-         {/* Floating Wisdom Card */}
-         <div className="absolute -bottom-8 -left-8 md:-left-12 bg-surface-container-lowest/95 backdrop-blur-xl p-6 rounded-2xl shadow-meditative max-w-[280px] border border-primary/5">
-            <h4 className="text-secondary font-serif italic text-sm mb-2 font-bold tracking-wide">Wisdom of the Day</h4>
-            <p className="text-sm text-primary/80 leading-relaxed font-medium">
-              &quot;The soul is like a mirror; the more you polish it with prayer, the more it reflects Divine light.&quot;
+         {/* Floating Prayer Card */}
+         <div className="absolute -bottom-8 -left-8 md:-left-12 max-w-[280px]">
+            <UpcomingPrayer />
+         </div>
+
+         {/* Wisdom Badge */}
+         <div className="absolute top-8 -right-4 bg-surface-container-lowest/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-primary/5 hidden lg:block">
+            <p className="text-[10px] font-bold tracking-widest text-primary uppercase italic">
+              &quot;Polish the mirror of the soul&quot;
             </p>
          </div>
       </div>

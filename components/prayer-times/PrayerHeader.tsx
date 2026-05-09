@@ -56,10 +56,6 @@ export function PrayerHeader({
           </div>
         </div>
 
-        <div className="bg-surface-container-low/50 p-6 rounded-3xl border border-outline-variant/10 backdrop-blur-sm self-start md:self-end">
-           <p className="text-[9px] font-bold tracking-widest uppercase text-on-surface-variant/30 mb-2">Calculation Method</p>
-           <p className="text-[11px] font-medium text-on-surface-variant/70 italic">Islamic Society of North America (ISNA)</p>
-        </div>
       </div>
     </div>
   );
