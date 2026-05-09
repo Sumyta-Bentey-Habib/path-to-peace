@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Bell, Heart, Star, Share2, Globe, Mail, Moon } from "lucide-react";
+import { Heart, Star, Share2, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Footer() {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <footer className="bg-surface-container-low mt-24 py-20 px-8 lg:px-12 border-t border-outline-variant/10 font-sans">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-12">
@@ -16,18 +20,6 @@ export function Footer() {
             A dedicated digital sanctuary preserving the timeless wisdom of Islamic knowledge for a
             modern generation. Seek, learn, and grow through sacred narratives.
           </p>
-          <div className="flex space-x-3">
-            {[Globe, Mail, Search].map((Icon, i) => (
-              <Button
-                key={i}
-                variant="outline"
-                size="icon"
-                className="group rounded-full bg-surface/50 border-outline-variant/20 hover:bg-primary transition-all duration-300"
-              >
-                <Icon className="w-4 h-4 text-primary group-hover:text-on-primary transition-colors" />
-              </Button>
-            ))}
-          </div>
         </div>
 
         <div>
@@ -66,29 +58,6 @@ export function Footer() {
           <p className="text-xs text-on-surface-variant/60 mb-8 leading-relaxed italic">
             &ldquo;The ink of the scholar is more sacred than the blood of the martyr.&rdquo;
           </p>
-          <div className="flex space-x-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full bg-surface-container-highest/20"
-            >
-              <Moon className="w-4 h-4 text-primary" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full bg-surface-container-highest/20"
-            >
-              <Search className="w-4 h-4 text-primary" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full bg-surface-container-highest/20"
-            >
-              <Bell className="w-4 h-4 text-primary" />
-            </Button>
-          </div>
         </div>
 
         <div className="flex flex-col justify-between items-start md:items-end">
@@ -99,10 +68,25 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mt-12 md:mt-0 text-on-surface-variant/20">
-            <Heart className="w-4 h-4 fill-current" />
-            <Star className="w-4 h-4 fill-current" />
-            <Share2 className="w-4 h-4" />
+          <div className="flex flex-col items-start md:items-end gap-6 mt-12 md:mt-0">
+            <Button
+              variant="ghost"
+              onClick={scrollToTop}
+              className="flex items-center gap-2 text-primary/60 hover:text-primary hover:bg-primary/5 transition-all duration-300 group px-0 h-auto"
+            >
+              <div className="p-2 rounded-full border border-primary/20 group-hover:border-primary/40 transition-colors">
+                <ArrowUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+              <span className="text-[10px] font-bold tracking-[0.15em] uppercase">
+                click me to go on the top
+              </span>
+            </Button>
+
+            <div className="flex items-center gap-2 text-on-surface-variant/20">
+              <Heart className="w-4 h-4 fill-current" />
+              <Star className="w-4 h-4 fill-current" />
+              <Share2 className="w-4 h-4" />
+            </div>
           </div>
         </div>
       </div>
