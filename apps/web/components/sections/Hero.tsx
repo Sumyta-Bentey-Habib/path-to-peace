@@ -16,11 +16,11 @@ export function Hero() {
           <Star className="w-3 h-3 mr-2 fill-secondary" />
           Daily Reflection
         </Badge>
-        <h1 className="text-5xl md:text-7xl font-serif text-primary leading-[1.1] max-w-[12ch]">
-          &quot;He who knows himself, knows his Lord.&quot;
+        <h1 className="text-5xl md:text-7xl font-serif text-primary leading-[1.1] max-w-[15ch]">
+          &quot;In the remembrance of Allah do hearts find rest.&quot;
         </h1>
         <p className="text-lg md:text-xl text-on-surface-variant font-sans max-w-[45ch] leading-relaxed italic">
-          A timeless reminder attributed to the sages, inviting us to the inward journey of peace and discovery.
+          A divine assurance from the Quran (13:28), inviting us to find tranquility through spiritual mindfulness.
         </p>
         <div className="flex flex-wrap items-center gap-8">
           <Link 
