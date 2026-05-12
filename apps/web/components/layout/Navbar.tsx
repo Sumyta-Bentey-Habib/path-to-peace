@@ -13,7 +13,6 @@ export function Navbar() {
     { name: "Quran", href: "/quran" },
     { name: "Duas", href: "/duas" },
     { name: "Stories", href: "/stories" },
-    { name: "Blog", href: "/blog" },
     { name: "Prayer Time", href: "/prayer-times" },
   ];
 

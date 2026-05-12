@@ -21,7 +21,6 @@ const sidebarItems = [
   { name: "Overview", href: "/admin", icon: LayoutDashboard },
   { name: "Data Sanctuary", href: "/admin/data", icon: Database },
   { name: "Duas", href: "/admin/duas", icon: Heart },
-  { name: "Blog Posts", href: "/admin/blog", icon: FileText },
   { name: "Quran Surahs", href: "/admin/quran", icon: BookOpen },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
