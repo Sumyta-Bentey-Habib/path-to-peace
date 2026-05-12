@@ -17,7 +17,6 @@ import { styles } from "./style";
 
 const dataModules = [
   { id: "duas", name: "Duas Collection", count: 48, lastUpdated: "2 hours ago", status: "Active" },
-  { id: "blog", name: "Blog Articles", count: 24, lastUpdated: "Yesterday", status: "Active" },
   { id: "feelings", name: "Feeling Tool Mapping", count: 112, lastUpdated: "3 days ago", status: "Review" },
   { id: "quran", name: "Quran Metadata", count: 114, lastUpdated: "Last month", status: "Active" },
   { id: "prayer", name: "Prayer Schedule", count: 365, lastUpdated: "Today", status: "Active" },

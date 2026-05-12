@@ -12,8 +12,6 @@ import { styles } from "./style";
 
 const stats = [
   { name: "Total Duas", value: "48", icon: Heart, trend: "+3 this week", color: "bg-emerald-50 text-emerald-600" },
-  { name: "Blog Posts", value: "24", icon: FileText, trend: "+1 today", color: "bg-blue-50 text-blue-600" },
-  { name: "Monthly Readers", value: "1,280", icon: Users, trend: "+12.4%", color: "bg-amber-50 text-amber-600" },
   { name: "Avg. Peace Score", value: "8.4", icon: TrendingUp, trend: "+0.2", color: "bg-purple-50 text-purple-600" },
 ];
 
@@ -83,9 +81,6 @@ export default function AdminOverviewUI() {
           <div className="space-y-4">
             <button className={styles.actionBtnSecondary}>
               Add New Dua <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-            </button>
-            <button className={styles.actionBtnOutline}>
-              Write Blog Post <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
             </button>
             <button className={styles.actionBtnOutline}>
               Update Quran Metadata <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
