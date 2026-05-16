@@ -13,7 +13,8 @@ import {
     Book,
     GraduationCap,
     Smile,
-    Heart
+    Heart,
+    ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
 
@@ -120,7 +121,14 @@ export default function DashboardLayout({
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-border bg-surface-container-low/50">
+                <div className="p-4 border-t border-border bg-surface-container-low/50 space-y-1">
+                    <Link
+                        href="/"
+                        className="flex items-center gap-3 w-full px-3 py-3 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all duration-200"
+                    >
+                        <ArrowLeft size={20} />
+                        <span className="font-medium">Back to Site</span>
+                    </Link>
                     <button 
                         onClick={handleSignOut}
                         className="flex items-center gap-3 w-full px-3 py-3 text-on-surface-variant hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-200"
