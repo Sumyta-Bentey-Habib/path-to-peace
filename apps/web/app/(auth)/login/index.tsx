@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, ArrowRight } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import {
   Header,
   Title,
@@ -31,14 +32,28 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/admin");
-    }, 1500);
+    
+    const { data, error } = await authClient.signIn.email({
+        email,
+        password
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+        alert(error.message || "Login failed");
+        return;
+    }
+
+    const role = data?.user.role;
+    if (role === "admin") {
+        router.push("/admin");
+    } else {
+        router.push("/dashboard");
+    }
   };
 
   return (
@@ -101,24 +116,6 @@ export default function Login() {
         </SubmitButton>
       </form>
 
-      <DividerSection>
-        <DividerWrapper>
-          <DividerLine />
-          <DividerText>Divine Auth</DividerText>
-          <DividerLine />
-        </DividerWrapper>
-
-        <SocialGrid>
-          <SocialButton>
-            <SocialIconGoogle />
-            <span className="text-sm font-bold text-primary">Google</span>
-          </SocialButton>
-          <SocialButton>
-            <SocialIconGithub />
-            <span className="text-sm font-bold text-primary">GitHub</span>
-          </SocialButton>
-        </SocialGrid>
-      </DividerSection>
 
       <ApplyText>
         Not a guardian?{" "}

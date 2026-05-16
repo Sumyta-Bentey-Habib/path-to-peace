@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, ArrowRight, User, ShieldCheck } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import {
   Header,
   IconBox,
@@ -28,14 +29,25 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate registration
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/login");
-    }, 1500);
+    
+    const { data, error } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+        callbackURL: "/dashboard"
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+        alert(error.message || "Registration failed");
+        return;
+    }
+
+    router.push("/dashboard");
   };
 
   return (
