@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import surahsData from "@/lib/data/quran_surahs.json";
 import quranDataRaw from "@/lib/data/quran_data.json";
 
@@ -37,11 +38,27 @@ interface SurahData {
 }
 
 export function useQuran() {
+  const searchParams = useSearchParams();
+  const surahParam = searchParams ? searchParams.get("surah") : null;
+
   const [activeSurahId, setActiveSurahId] = useState<number>(1);
   const [surahData, setSurahData] = useState<SurahData>(quranData["1"]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const surahs = surahsData as unknown as SurahListItem[];
+
+  useEffect(() => {
+    if (surahParam) {
+      const parsedId = parseInt(surahParam, 10);
+      if (!isNaN(parsedId) && parsedId >= 1 && parsedId <= 114) {
+        setActiveSurahId(parsedId);
+        const data = quranData[parsedId.toString()];
+        if (data) {
+          setSurahData(data);
+        }
+      }
+    }
+  }, [surahParam]);
 
   const filteredSurahs = useMemo(() => {
     const query = searchQuery.toLowerCase();

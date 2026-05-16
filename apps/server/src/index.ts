@@ -6,6 +6,12 @@ import morgan from "morgan";
 import { auth } from "./auth.js";
 import { authMiddleware } from "./middleware/auth.middleware.js";
 import { getProfile } from "./controllers/user.controller.js";
+import { 
+    getSavedItems, 
+    addSavedItem, 
+    deleteSavedItemById, 
+    deleteSavedItemByItem 
+} from "./controllers/saved-items.controller.js";
 
 import { adminMiddleware } from "./middleware/auth.middleware.js";
 import { 
@@ -37,6 +43,12 @@ app.use("/api/auth", toNodeHandler(auth));
 
 // Protected Routes
 app.get("/api/me", authMiddleware, getProfile);
+
+// Saved Sanctuary Items Routes
+app.get("/api/saved-items", authMiddleware, getSavedItems);
+app.post("/api/saved-items", authMiddleware, addSavedItem);
+app.delete("/api/saved-items/:id", authMiddleware, deleteSavedItemById);
+app.delete("/api/saved-items/:type/:itemId", authMiddleware, deleteSavedItemByItem);
 
 // Admin Routes
 app.get("/api/admin/stats", adminMiddleware, getStats);

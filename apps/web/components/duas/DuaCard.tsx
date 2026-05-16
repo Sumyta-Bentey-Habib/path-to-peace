@@ -3,8 +3,10 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Heart } from "lucide-react";
 
 interface DuaCardProps {
+  id: number;
   category: string;
   title: string;
   description: string;
@@ -13,9 +15,13 @@ interface DuaCardProps {
   meaning: string;
   reference: string;
   isReversed?: boolean;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+  showSaveButton?: boolean;
 }
 
 export function DuaCard({
+  id,
   category,
   title,
   description,
@@ -24,6 +30,9 @@ export function DuaCard({
   meaning,
   reference,
   isReversed = false,
+  isSaved = false,
+  onToggleSave,
+  showSaveButton = false,
 }: DuaCardProps) {
   return (
     <div className={cn(
@@ -37,9 +46,23 @@ export function DuaCard({
         isReversed ? "md:col-start-9 md:col-span-4" : ""
       )}>
         <div className="space-y-6">
-          <Badge className="bg-primary/5 text-primary border-none px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase">
-            {category}
-          </Badge>
+          <div className="flex items-center justify-between">
+            <Badge className="bg-primary/5 text-primary border-none px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase">
+              {category}
+            </Badge>
+            {showSaveButton && onToggleSave && (
+              <button
+                onClick={onToggleSave}
+                className="p-2 hover:bg-rose-50 rounded-full transition-all duration-300 text-rose-500 group/btn cursor-pointer hover:scale-110 active:scale-95"
+                title={isSaved ? "Remove from Sanctuary" : "Save Supplication"}
+              >
+                <Heart 
+                  size={18} 
+                  className={isSaved ? "fill-rose-500 text-rose-500 transition-all duration-300" : "text-rose-400 group-hover/btn:text-rose-500 transition-all duration-300"} 
+                />
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
             <h2 className="text-3xl md:text-4xl font-serif text-primary tracking-tight">
               {title}
