@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { layoutStyles as styles } from "./layout.style";
+import { authClient } from "@/lib/auth-client";
 
 const sidebarItems = [
   { name: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -25,7 +26,7 @@ const sidebarItems = [
   { name: "Courses", href: "/admin/courses", icon: BookOpen },
   { name: "Feeling Tool", href: "/admin/feeling-tool", icon: Heart },
   { name: "Duas", href: "/admin/duas", icon: FileText },
-  { name: "Data Sanctuary", href: "/admin/data", icon: Database },
+  { name: "System Logs", href: "/admin/data", icon: Database },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
@@ -106,7 +107,10 @@ export default function AdminLayoutWrapper({
               <span className="font-medium">Back to Site</span>
             </Link>
             <button
-              onClick={() => console.log("logout")} // TODO: implement actual logout
+              onClick={async () => {
+                await authClient.signOut();
+                window.location.href = "/";
+              }}
               className={styles.logoutBtn}
             >
               <LogOut size={20} />
