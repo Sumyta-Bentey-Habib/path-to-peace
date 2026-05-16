@@ -1,20 +1,29 @@
 "use client";
 
 import NextLink from "next/link";
-import { usePathname } from "next/navigation";
-import { Bell, User, LayoutGrid } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, User, LayoutGrid, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
 
   const navLinks = [
     { name: "Quran", href: "/quran" },
     { name: "Duas", href: "/duas" },
+    { name: "Courses", href: "/courses" },
     { name: "Stories", href: "/stories" },
     { name: "Prayer Time", href: "/prayer-times" },
   ];
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    router.refresh();
+  };
 
   return (
     <nav className="sticky top-0 z-50 glassmorphism ghost-border border-x-0 border-t-0 px-8 py-5 flex items-center justify-between">
@@ -57,23 +66,47 @@ export function Navbar() {
           </Button>
           
           <div className="hidden sm:flex items-center space-x-2 ml-2">
-            <NextLink href="/login">
-              <Button variant="ghost" className="text-primary font-bold hover:bg-primary/5 rounded-xl px-5 transition-all">
-                Login
-              </Button>
-            </NextLink>
-            <NextLink href="/register">
-              <Button className="bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-6 font-bold shadow-lg shadow-primary/10 transition-all">
-                Join Sanctuary
-              </Button>
-            </NextLink>
+            {session ? (
+              <div className="flex items-center gap-3">
+                {session.user.role === "admin" && (
+                  <NextLink href="/admin">
+                    <Button variant="outline" className="ghost-border text-xs font-bold rounded-xl px-4">
+                      Dashboard
+                    </Button>
+                  </NextLink>
+                )}
+                <Button 
+                  onClick={handleLogout}
+                  variant="ghost" 
+                  className="text-rose-500 font-bold hover:bg-rose-50 rounded-xl px-5 transition-all flex items-center gap-2"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <>
+                <NextLink href="/login">
+                  <Button variant="ghost" className="text-primary font-bold hover:bg-primary/5 rounded-xl px-5 transition-all">
+                    Login
+                  </Button>
+                </NextLink>
+                <NextLink href="/register">
+                  <Button className="bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-6 font-bold shadow-lg shadow-primary/10 transition-all">
+                    Join Sanctuary
+                  </Button>
+                </NextLink>
+              </>
+            )}
           </div>
 
-          <NextLink href="/login" className="sm:hidden">
-            <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
-              <User className="w-5 h-5 bg-on-surface-variant/10 p-1.5 rounded-full" />
-            </Button>
-          </NextLink>
+          {!session && (
+            <NextLink href="/login" className="sm:hidden">
+              <Button variant="ghost" size="icon" className="rounded-full text-on-surface-variant hover:bg-surface-container-low">
+                <User className="w-5 h-5 bg-on-surface-variant/10 p-1.5 rounded-full" />
+              </Button>
+            </NextLink>
+          )}
           
           <Button variant="ghost" size="icon" className="lg:hidden rounded-full text-on-surface-variant">
             <LayoutGrid className="w-5 h-5" />
@@ -83,3 +116,4 @@ export function Navbar() {
     </nav>
   );
 }
+
