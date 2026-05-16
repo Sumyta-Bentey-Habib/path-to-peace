@@ -1,6 +1,7 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { useEffect, useState } from "react";
+import { authClient, getAuthHeaders } from "@/lib/auth-client";
 import { 
     Sparkles, 
     Heart, 
@@ -11,16 +12,79 @@ import {
     ChevronRight,
     Compass,
     Clock,
-    CheckCircle2
+    CheckCircle2,
+    Trash2,
+    Bookmark,
+    Frown,
+    User,
+    Wind,
+    Anchor
 } from "lucide-react";
 import Link from "next/link";
 
+const FeelingIcon = ({ name, size = 20, className = "" }: any) => {
+    switch (name) {
+        case "Frown": return <Frown size={size} className={className} />;
+        case "User": return <User size={size} className={className} />;
+        case "Wind": return <Wind size={size} className={className} />;
+        case "Heart": return <Heart size={size} className={className} />;
+        case "Anchor": return <Anchor size={size} className={className} />;
+        default: return <Smile size={size} className={className} />;
+    }
+};
+
 export default function DashboardPage() {
     const { data: session } = authClient.useSession();
+    const [savedItems, setSavedItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<"quran" | "dua" | "feeling">("quran");
+
+    const fetchSavedItems = async () => {
+        if (!session) return;
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items`, {
+                credentials: "include",
+                headers: await getAuthHeaders()
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setSavedItems(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch saved sanctuary items:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchSavedItems();
+    }, [session]);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to remove this item from your sanctuary?")) return;
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items/${id}`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: await getAuthHeaders()
+            });
+            if (response.ok) {
+                setSavedItems(prev => prev.filter(item => item._id !== id));
+            }
+        } catch (error) {
+            console.error("Failed to delete saved item:", error);
+        }
+    };
 
     if (!session) return null;
 
     const firstName = session.user.name.split(" ")[0];
+
+    // Filter items
+    const savedDuas = savedItems.filter(item => item.type === "dua");
+    const savedSurahs = savedItems.filter(item => item.type === "quran");
+    const savedFeelings = savedItems.filter(item => item.type === "feeling");
 
     return (
         <div className="space-y-10 pb-12">
@@ -51,26 +115,23 @@ export default function DashboardPage() {
                         <Compass size={22} />
                         Your Sanctuary
                     </h3>
-                    <button className="text-sm font-bold text-secondary hover:underline flex items-center gap-1">
-                        View All <ChevronRight size={16} />
-                    </button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <SanctuaryCard 
                         title="Saved Duas" 
-                        desc="12 Supplications" 
+                        desc={`${savedDuas.length} Supplications`} 
                         icon={<Heart className="text-rose-500" />} 
                         href="/dashboard/saved-duas"
-                        progress={65}
+                        progress={Math.min(100, Math.round((savedDuas.length / 10) * 100))}
                         progressColor="bg-rose-500"
                     />
                     <SanctuaryCard 
                         title="Quran Study" 
-                        desc="Juz 3, Surah Al-Baqarah" 
+                        desc={`${savedSurahs.length} Surahs Saved`} 
                         icon={<Book className="text-blue-500" />} 
-                        href="/quran"
-                        progress={28}
+                        href="/dashboard/saved-quran"
+                        progress={Math.min(100, Math.round((savedSurahs.length / 5) * 100))}
                         progressColor="bg-blue-500"
                     />
                     <SanctuaryCard 
@@ -83,13 +144,202 @@ export default function DashboardPage() {
                     />
                     <SanctuaryCard 
                         title="Emotional State" 
-                        desc="Peaceful & Grateful" 
+                        desc={savedFeelings.length > 0 ? `Reflecting: ${savedFeelings[0].data.label}` : "Reflections"} 
                         icon={<Smile className="text-amber-500" />} 
-                        href="/feeling-tool"
-                        progress={100}
+                        href="/dashboard/saved-feelings"
+                        progress={savedFeelings.length > 0 ? 100 : 0}
                         progressColor="bg-amber-500"
                     />
                 </div>
+            </div>
+
+            {/* My Saved Sanctuary */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-12">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
+                            <Compass size={24} className="text-secondary" />
+                            My Saved Sanctuary
+                        </h3>
+                        <p className="text-xs text-on-surface-variant font-medium mt-1">Your bookmarks, supplications, and comforting reflections.</p>
+                    </div>
+
+                    {/* Tab Switchers */}
+                    <div className="flex bg-surface-container rounded-2xl p-1 gap-1">
+                        <button
+                            onClick={() => setActiveTab("quran")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${activeTab === "quran" ? "bg-primary text-white shadow-sm" : "text-on-surface-variant hover:bg-surface-container-highest"}`}
+                        >
+                            Surahs ({savedSurahs.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("dua")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${activeTab === "dua" ? "bg-primary text-white shadow-sm" : "text-on-surface-variant hover:bg-surface-container-highest"}`}
+                        >
+                            Duas ({savedDuas.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("feeling")}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${activeTab === "feeling" ? "bg-primary text-white shadow-sm" : "text-on-surface-variant hover:bg-surface-container-highest"}`}
+                        >
+                            Feelings ({savedFeelings.length})
+                        </button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="py-16 text-center text-primary font-medium flex items-center justify-center gap-3">
+                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        Retrieving your sanctuary...
+                    </div>
+                ) : (
+                    <div className="animate-in fade-in duration-500">
+                        {/* Tab: Quran Surahs */}
+                        {activeTab === "quran" && (
+                            savedSurahs.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {savedSurahs.map((item) => (
+                                        <div key={item._id} className="bg-surface-container-low/40 border border-outline-variant/10 p-6 rounded-3xl relative hover:shadow-meditative transition-all duration-300 group flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <span className="px-3 py-1 rounded-full bg-secondary-container/20 text-[9px] font-bold uppercase tracking-widest text-secondary">
+                                                        {item.data.revelationType}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDelete(item._id)}
+                                                        className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete from Sanctuary"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <h4 className="text-lg font-bold text-primary font-serif mb-1">
+                                                    Surah {item.data.englishName}
+                                                </h4>
+                                                <p className="text-xs text-on-surface-variant font-medium mb-4">{item.data.numberOfAyahs} Ayahs</p>
+                                            </div>
+                                            <Link 
+                                                href={`/quran?surah=${item.itemId}`}
+                                                className="inline-flex items-center justify-between w-full px-4 py-3 bg-white border border-outline-variant/20 rounded-xl text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all group-hover:border-primary duration-300"
+                                            >
+                                                <span>Read Surah</span>
+                                                <ChevronRight size={14} />
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EmptySanctuaryState 
+                                    icon={<Book className="text-blue-500" size={32} />}
+                                    title="No Saved Surahs"
+                                    desc="Start reading the Quran and bookmark your active study Surahs to track your spiritual journey here."
+                                    btnText="Explore Quran"
+                                    btnHref="/quran"
+                                />
+                            )
+                        )}
+
+                        {/* Tab: Duas */}
+                        {activeTab === "dua" && (
+                            savedDuas.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {savedDuas.map((item) => (
+                                        <div key={item._id} className="bg-surface-container-low/40 border border-outline-variant/10 p-6 rounded-3xl relative hover:shadow-meditative transition-all duration-300 group flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <span className="px-3 py-1 rounded-full bg-primary/5 text-[9px] font-bold uppercase tracking-widest text-primary">
+                                                        {item.data.category}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDelete(item._id)}
+                                                        className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete from Sanctuary"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <h4 className="text-lg font-bold text-primary font-serif mb-2 line-clamp-1">{item.data.title}</h4>
+                                                <p className="text-xl text-right font-arabic text-primary/85 mb-3 line-clamp-1" dir="rtl">{item.data.arabic}</p>
+                                                <p className="text-xs italic text-on-surface-variant/80 mb-4 line-clamp-2">"{item.data.meaning}"</p>
+                                            </div>
+                                            <Link 
+                                                href="/duas"
+                                                className="inline-flex items-center justify-between w-full px-4 py-3 bg-white border border-outline-variant/20 rounded-xl text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all group-hover:border-primary duration-300"
+                                            >
+                                                <span>View in Library</span>
+                                                <ChevronRight size={14} />
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EmptySanctuaryState 
+                                    icon={<Heart className="text-rose-500" size={32} />}
+                                    title="No Saved Supplications"
+                                    desc="Explore the Library of Duas to find comforting prayers and save them here for quick reflection."
+                                    btnText="Browse Duas"
+                                    btnHref="/duas"
+                                />
+                            )
+                        )}
+
+                        {/* Tab: Feelings */}
+                        {activeTab === "feeling" && (
+                            savedFeelings.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {savedFeelings.map((item) => (
+                                        <div key={item._id} className="bg-surface-container-low/40 border border-outline-variant/10 p-6 rounded-3xl relative hover:shadow-meditative transition-all duration-300 group flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-xl bg-secondary-container/20 flex items-center justify-center text-secondary">
+                                                            <FeelingIcon name={item.data.icon} size={16} />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-primary uppercase tracking-wider">{item.data.label}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDelete(item._id)}
+                                                        className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete from Sanctuary"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                
+                                                <div className="border-l-[3px] border-secondary/20 pl-4 mb-4 text-left">
+                                                    <span className="text-[8px] font-bold uppercase tracking-widest text-secondary/50">Comforting Quranic Verse</span>
+                                                    <p className="text-sm font-serif text-primary mb-1 mt-0.5 leading-relaxed">"{item.data.quran.translation}"</p>
+                                                    <span className="text-[9px] text-on-surface-variant font-bold">{item.data.quran.reference}</span>
+                                                </div>
+
+                                                <div className="border-l-[3px] border-primary/20 pl-4 mb-4 text-left">
+                                                    <span className="text-[8px] font-bold uppercase tracking-widest text-primary/40">Comforting Supplication</span>
+                                                    <p className="text-sm font-serif text-primary/80 mb-1 mt-0.5 leading-relaxed">"{item.data.dua.translation}"</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <Link 
+                                                href="/feeling-tool"
+                                                className="inline-flex items-center justify-between w-full px-4 py-3 bg-white border border-outline-variant/20 rounded-xl text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all group-hover:border-primary duration-300 mt-2"
+                                            >
+                                                <span>Open Feeling Tool</span>
+                                                <ChevronRight size={14} />
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EmptySanctuaryState 
+                                    icon={<Smile className="text-amber-500" size={32} />}
+                                    title="No Saved States"
+                                    desc="Use our Emotional Comfort tool to identify how you feel and save tailored verses/duas here."
+                                    btnText="Open Feeling Tool"
+                                    btnHref="/feeling-tool"
+                                />
+                            )
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -206,13 +456,31 @@ function JourneyItem({ title, time, desc, status }: any) {
                     <CheckCircle2 size={18} className="text-primary opacity-20 group-hover:opacity-100 transition-opacity" />
                 </div>
             </div>
-            <div className="flex-1 pt-0.5">
+            <div className="flex-1 pt-0.5 text-left">
                 <div className="flex items-center justify-between mb-1">
                     <h4 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors">{title}</h4>
                     <span className="text-[10px] text-on-surface-variant/60 uppercase font-bold tracking-widest">{time}</span>
                 </div>
                 <p className="text-sm text-on-surface-variant leading-relaxed">{desc}</p>
             </div>
+        </div>
+    );
+}
+
+function EmptySanctuaryState({ icon, title, desc, btnText, btnHref }: any) {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 text-center max-w-md mx-auto animate-in fade-in duration-500">
+            <div className="w-16 h-16 rounded-3xl bg-surface-container flex items-center justify-center mb-5">
+                {icon}
+            </div>
+            <h4 className="text-lg font-bold text-primary mb-2 font-serif">{title}</h4>
+            <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 font-medium">{desc}</p>
+            <Link 
+                href={btnHref} 
+                className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-primary/10 hover:bg-primary-container transition-all hover:scale-105 active:scale-95"
+            >
+                {btnText}
+            </Link>
         </div>
     );
 }
