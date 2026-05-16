@@ -18,6 +18,7 @@ export function Navbar() {
     { name: "Courses", href: "/courses" },
     { name: "Stories", href: "/stories" },
     { name: "Prayer Time", href: "/prayer-times" },
+    ...(session ? [{ name: "Dashboard", href: session.user.role === "admin" ? "/admin" : "/dashboard" }] : []),
   ];
 
   const handleLogout = async () => {
@@ -68,13 +69,11 @@ export function Navbar() {
           <div className="hidden sm:flex items-center space-x-2 ml-2">
             {session ? (
               <div className="flex items-center gap-3">
-                {session.user.role === "admin" && (
-                  <NextLink href="/admin">
-                    <Button variant="outline" className="ghost-border text-xs font-bold rounded-xl px-4">
-                      Dashboard
-                    </Button>
-                  </NextLink>
-                )}
+                <NextLink href={session.user.role === "admin" ? "/admin" : "/dashboard"}>
+                  <Button variant="outline" className="ghost-border text-xs font-bold rounded-xl px-4">
+                    Dashboard
+                  </Button>
+                </NextLink>
                 <Button 
                   onClick={handleLogout}
                   variant="ghost" 
