@@ -40,7 +40,7 @@ export const seedDatabase = async () => {
                     duration: "4 weeks",
                     instructor: "Admin",
                     status: "active",
-                    amount: 49.99
+                    amount: 1200
                 }
             ];
             await db.collection("courses").insertMany(defaultCourses);

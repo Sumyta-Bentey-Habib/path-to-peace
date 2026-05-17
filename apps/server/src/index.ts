@@ -15,6 +15,15 @@ import {
 
 import { adminMiddleware } from "./middleware/auth.middleware.js";
 import { 
+    initiatePayment, 
+    paymentSuccess, 
+    paymentFail, 
+    paymentCancel, 
+    paymentIpn, 
+    enrollFreeCourse, 
+    getEnrolledCourses 
+} from "./controllers/payment.controller.js";
+import { 
     getUsers, updateUser, deleteUser,
     getCourses, createCourse, updateCourse, deleteCourse,
     getDuas, createDua, updateDua, deleteDua,
@@ -33,6 +42,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Path to Peace API" });
@@ -43,6 +53,15 @@ app.use("/api/auth", toNodeHandler(auth));
 
 // Protected Routes
 app.get("/api/me", authMiddleware, getProfile);
+
+// Payment & Course Enrollment Routes
+app.post("/api/payment/initiate", authMiddleware, initiatePayment);
+app.post("/api/payment/success", paymentSuccess);
+app.post("/api/payment/fail", paymentFail);
+app.post("/api/payment/cancel", paymentCancel);
+app.post("/api/payment/ipn", paymentIpn);
+app.post("/api/courses/enroll-free", authMiddleware, enrollFreeCourse);
+app.get("/api/courses/enrolled", authMiddleware, getEnrolledCourses);
 
 // Saved Sanctuary Items Routes
 app.get("/api/saved-items", authMiddleware, getSavedItems);
