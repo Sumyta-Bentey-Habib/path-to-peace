@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import { 
     Sparkles, 
     Heart, 
@@ -12,92 +12,28 @@ import {
     ChevronRight,
     Compass,
     Clock,
-    CheckCircle2,
     Trash2,
-    Bookmark,
-    Frown,
-    User,
-    Wind,
-    Anchor,
     ArrowRight
 } from "lucide-react";
 import Link from "next/link";
-
-const FeelingIcon = ({ name, size = 20, className = "" }: any) => {
-    switch (name) {
-        case "Frown": return <Frown size={size} className={className} />;
-        case "User": return <User size={size} className={className} />;
-        case "Wind": return <Wind size={size} className={className} />;
-        case "Heart": return <Heart size={size} className={className} />;
-        case "Anchor": return <Anchor size={size} className={className} />;
-        default: return <Smile size={size} className={className} />;
-    }
-};
+import { useSavedItems } from "@/hooks/use-saved-items";
+import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
+import { SanctuaryCard } from "@/components/dashboard/SanctuaryCard";
+import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
+import { JourneyItem } from "@/components/dashboard/JourneyItem";
+import { FeelingIcon } from "@/components/dashboard/FeelingIcon";
 
 export default function DashboardPage() {
     const { data: session } = authClient.useSession();
-    const [savedItems, setSavedItems] = useState<any[]>([]);
-    const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { savedItems, loading: loadingSaved, deleteItemById } = useSavedItems();
+    const { enrolledCourses, loading: loadingCourses } = useEnrolledCourses();
     const [activeTab, setActiveTab] = useState<"quran" | "dua" | "feeling">("quran");
 
-    const fetchSavedItems = async () => {
-        if (!session) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items`, {
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setSavedItems(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch saved sanctuary items:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchEnrolledCourses = async () => {
-        if (!session) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/courses/enrolled`, {
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    setEnrolledCourses(data);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch enrolled courses:", error);
-        }
-    };
-
-    useEffect(() => {
-        if (session) {
-            fetchSavedItems();
-            fetchEnrolledCourses();
-        }
-    }, [session]);
+    const loading = loadingSaved || loadingCourses;
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to remove this item from your sanctuary?")) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items/${id}`, {
-                method: "DELETE",
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                setSavedItems(prev => prev.filter(item => item._id !== id));
-            }
-        } catch (error) {
-            console.error("Failed to delete saved item:", error);
-        }
+        await deleteItemById(id);
     };
 
     if (!session) return null;
@@ -177,7 +113,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Enrolled Courses */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-6">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-6 text-left">
                 <div className="flex items-center justify-between mb-6 px-2">
                     <div>
                         <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
@@ -223,7 +159,7 @@ export default function DashboardPage() {
             </div>
 
             {/* My Saved Sanctuary */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-12">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-12 text-left">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
@@ -414,7 +350,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Recent Journey */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-8 rounded-[2rem] border border-border shadow-meditative relative overflow-hidden">
+                    <div className="bg-white p-8 rounded-[2rem] border border-border shadow-meditative relative overflow-hidden text-left">
                         <h3 className="text-xl font-bold text-primary mb-8 flex items-center gap-2">
                             <Clock size={20} />
                             Recent Journey
@@ -447,7 +383,7 @@ export default function DashboardPage() {
 
                 {/* Growth Stats */}
                 <div className="space-y-6">
-                    <div className="bg-surface-container-low p-8 rounded-[2rem] border border-border flex flex-col justify-between min-h-[300px] group hover:bg-white transition-all duration-300 shadow-sm hover:shadow-meditative">
+                    <div className="bg-surface-container-low p-8 rounded-[2rem] border border-border flex flex-col justify-between min-h-[300px] group hover:bg-white transition-all duration-300 shadow-sm hover:shadow-meditative text-left">
                         <div>
                             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-transform">
                                 <Star className="text-secondary" size={24} />
@@ -469,7 +405,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-secondary-container to-secondary/20 p-8 rounded-[2rem] border border-secondary/10 relative overflow-hidden group cursor-pointer">
+                    <div className="bg-gradient-to-br from-secondary-container to-secondary/20 p-8 rounded-[2rem] border border-secondary/10 relative overflow-hidden group cursor-pointer text-left">
                         <div className="relative z-10">
                             <h4 className="font-bold text-secondary mb-2 uppercase tracking-tighter text-xs">Recommended for you</h4>
                             <h3 className="text-lg font-bold text-primary mb-4 leading-tight">Mastering Mindfulness in Daily Life</h3>
@@ -484,73 +420,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-function SanctuaryCard({ title, desc, icon, href, progress, progressColor }: any) {
-    return (
-        <Link href={href} className="group">
-            <div className="bg-white p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-meditative transition-all duration-300 relative overflow-hidden h-full flex flex-col">
-                <div className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                    {icon}
-                </div>
-                <div className="flex-1">
-                    <h4 className="text-lg font-bold text-primary mb-1">{title}</h4>
-                    <p className="text-xs text-on-surface-variant mb-6 font-medium">{desc}</p>
-                </div>
-                
-                <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60">
-                        <span>Progress</span>
-                        <span>{progress}%</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-                        <div className={`h-full ${progressColor} rounded-full`} style={{ width: `${progress}%` }} />
-                    </div>
-                </div>
-                
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-8 h-8 bg-surface-container rounded-full flex items-center justify-center text-primary">
-                        <ChevronRight size={16} />
-                    </div>
-                </div>
-            </div>
-        </Link>
-    );
-}
-
-function JourneyItem({ title, time, desc, status }: any) {
-    return (
-        <div className="flex gap-6 group">
-            <div className="relative z-10">
-                <div className="w-10 h-10 bg-white border-2 border-surface-container rounded-full flex items-center justify-center group-hover:border-primary transition-colors duration-300">
-                    <CheckCircle2 size={18} className="text-primary opacity-20 group-hover:opacity-100 transition-opacity" />
-                </div>
-            </div>
-            <div className="flex-1 pt-0.5 text-left">
-                <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors">{title}</h4>
-                    <span className="text-[10px] text-on-surface-variant/60 uppercase font-bold tracking-widest">{time}</span>
-                </div>
-                <p className="text-sm text-on-surface-variant leading-relaxed">{desc}</p>
-            </div>
-        </div>
-    );
-}
-
-function EmptySanctuaryState({ icon, title, desc, btnText, btnHref }: any) {
-    return (
-        <div className="flex flex-col items-center justify-center py-12 text-center max-w-md mx-auto animate-in fade-in duration-500">
-            <div className="w-16 h-16 rounded-3xl bg-surface-container flex items-center justify-center mb-5">
-                {icon}
-            </div>
-            <h4 className="text-lg font-bold text-primary mb-2 font-serif">{title}</h4>
-            <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 font-medium">{desc}</p>
-            <Link 
-                href={btnHref} 
-                className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-primary/10 hover:bg-primary-container transition-all hover:scale-105 active:scale-95"
-            >
-                {btnText}
-            </Link>
-        </div>
-    );
-}
-

@@ -1,9 +1,9 @@
-import { Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware.js";
-import { db } from "../db/mongo.js";
-import { ObjectId } from "mongodb";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import { Response } from "express";
+import { ObjectId } from "mongodb";
+import { db } from "../db/mongo.js";
+import { AuthRequest } from "../middleware/auth.middleware.js";
 
 // Load environment variables immediately
 dotenv.config();
@@ -64,7 +64,7 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
             userId,
             courseId,
             courseTitle: course.title,
-            amount: courseAmount, 
+            amount: courseAmount,
             tranId,
             status: "pending",
             paymentStatus: "pending",
