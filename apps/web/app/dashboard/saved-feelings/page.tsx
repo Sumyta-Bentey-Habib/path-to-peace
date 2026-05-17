@@ -7,15 +7,35 @@ import Link from "next/link";
 import { useSavedItems } from "@/hooks/use-saved-items";
 import { FeelingIcon } from "@/components/dashboard/FeelingIcon";
 import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function SavedFeelingsPage() {
     const { data: session } = authClient.useSession();
     const { savedItems: savedFeelings, loading, deleteItemById } = useSavedItems("feeling");
     const [searchQuery, setSearchQuery] = useState("");
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to remove this emotional comfort state from your sanctuary?")) return;
-        await deleteItemById(id);
+    // Custom Modal States
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteRequest = (id: string) => {
+        setDeleteItemId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteItemId) return;
+        setIsDeleting(true);
+        try {
+            await deleteItemById(deleteItemId);
+            setIsDeleteModalOpen(false);
+            setDeleteItemId(null);
+        } catch (error) {
+            console.error("Failed to delete item:", error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (!session) return null;
@@ -83,7 +103,7 @@ export default function SavedFeelingsPage() {
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => handleDelete(item._id)}
+                                    onClick={() => handleDeleteRequest(item._id)}
                                     className="p-2 hover:bg-rose-50 text-rose-400 hover:text-rose-500 rounded-full transition-colors cursor-pointer"
                                     title="Delete from Sanctuary"
                                 >
@@ -147,6 +167,25 @@ export default function SavedFeelingsPage() {
                     btnHref="/feeling-tool"
                 />
             )}
+
+            {/* Reusable Sanctuary Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeleteItemId(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Remove from Sanctuary?"
+                description={
+                    <>
+                        Are you sure you want to remove this emotional comfort state from your sanctuary?
+                    </>
+                }
+                confirmLabel="Remove Reflection"
+                isDanger={true}
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

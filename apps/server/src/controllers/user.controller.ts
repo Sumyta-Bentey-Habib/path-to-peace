@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { ObjectId } from "mongodb";
 import { db } from "../db/mongo.js";
 
 /**
@@ -26,7 +27,7 @@ export const setMeAsAdmin = async (req: Request, res: Response) => {
     const user = (req as any).user;
     try {
         await db.collection("users").updateOne(
-            { id: user.id },
+            { _id: new ObjectId(user.id) },
             { $set: { role: "admin" } }
         );
         res.json({ message: "You are now an admin. Please refresh the page." });

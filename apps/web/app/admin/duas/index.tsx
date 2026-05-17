@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Heart, Plus, Search, Edit2, Trash2, X, Book } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function DuasManagement() {
   const [duas, setDuas] = useState<any[]>([]);
@@ -10,6 +11,11 @@ export default function DuasManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDua, setEditingDua] = useState<any>(null);
+
+  // Custom Modal States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteDuaId, setDeleteDuaId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchDuas = async () => {
     setLoading(true);
@@ -30,16 +36,28 @@ export default function DuasManagement() {
     fetchDuas();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this Dua?")) return;
+  const handleDeleteRequest = (id: string) => {
+    setDeleteDuaId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDuaId) return;
+    setIsDeleting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/duas/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/duas/${deleteDuaId}`, {
         method: "DELETE",
         credentials: "include"
       });
-      if (response.ok) fetchDuas();
+      if (response.ok) {
+        fetchDuas();
+        setIsDeleteModalOpen(false);
+        setDeleteDuaId(null);
+      }
     } catch (error) {
       console.error("Failed to delete dua:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -103,8 +121,8 @@ export default function DuasManagement() {
                     <Edit2 size={18} />
                   </button>
                   <button 
-                    onClick={() => handleDelete(dua._id)}
-                    className="p-3 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    onClick={() => handleDeleteRequest(dua._id)}
+                    className="p-3 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -119,6 +137,26 @@ export default function DuasManagement() {
         )}
       </div>
 
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteDuaId(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Supplication?"
+        description={
+          <>
+            Are you sure you want to delete this supplication (Dua)? This action is permanent and cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Dua"
+        isDanger={true}
+        isLoading={isDeleting}
+      />
+
+      {/* Modal for Creating/Editing */}
       {isModalOpen && (
         <DuaModal 
           editingDua={editingDua} 

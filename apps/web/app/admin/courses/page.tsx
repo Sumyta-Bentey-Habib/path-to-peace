@@ -5,6 +5,7 @@ import { BookOpen, Plus } from "lucide-react";
 import { useAdminCourses, CourseData } from "@/hooks/use-admin-courses";
 import { CourseCard } from "@/components/admin/CourseCard";
 import { CourseModal } from "@/components/admin/CourseModal";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function CoursesPage() {
   const { 
@@ -18,6 +19,11 @@ export default function CoursesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseData | null>(null);
 
+  // Custom Modal States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteCourseId, setDeleteCourseId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleOpenCreateModal = () => {
     setEditingCourse(null);
     setIsModalOpen(true);
@@ -28,9 +34,23 @@ export default function CoursesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
-    await deleteCourse(id);
+  const handleDeleteRequest = (id: string) => {
+    setDeleteCourseId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteCourseId) return;
+    setIsDeleting(true);
+    try {
+      await deleteCourse(deleteCourseId);
+      setIsDeleteModalOpen(false);
+      setDeleteCourseId(null);
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleFormSubmit = async (formData: Omit<CourseData, "_id">) => {
@@ -71,7 +91,7 @@ export default function CoursesPage() {
               key={course._id}
               course={course}
               onEdit={handleOpenEditModal}
-              onDelete={handleDelete}
+              onDelete={handleDeleteRequest}
             />
           ))}
         </div>
@@ -90,6 +110,25 @@ export default function CoursesPage() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleFormSubmit}
         course={editingCourse}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteCourseId(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Course?"
+        description={
+          <>
+            Are you sure you want to delete this course? This action is permanent and cannot be undone. All user enrollments and progress for this course will be lost.
+          </>
+        }
+        confirmLabel="Delete Course"
+        isDanger={true}
+        isLoading={isDeleting}
       />
     </div>
   );
