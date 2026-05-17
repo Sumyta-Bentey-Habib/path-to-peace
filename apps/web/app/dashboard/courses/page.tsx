@@ -1,39 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import { GraduationCap, Search, ChevronRight, BookOpen, Clock, Users } from "lucide-react";
 import Link from "next/link";
+import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
+import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
 
 export default function PurchasedCoursesPage() {
     const { data: session } = authClient.useSession();
-    const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { enrolledCourses, loading } = useEnrolledCourses();
     const [searchQuery, setSearchQuery] = useState("");
-
-    const fetchEnrolledCourses = async () => {
-        if (!session) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/courses/enrolled`, {
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    setEnrolledCourses(data);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch enrolled courses:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchEnrolledCourses();
-    }, [session]);
 
     if (!session) return null;
 
@@ -127,21 +104,13 @@ export default function PurchasedCoursesPage() {
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
-                    <div className="w-16 h-16 rounded-3xl bg-surface-container flex items-center justify-center mb-5">
-                        <GraduationCap className="text-emerald-500" size={32} />
-                    </div>
-                    <h4 className="text-xl font-bold text-primary mb-2 font-serif">No purchased courses yet</h4>
-                    <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 font-medium">
-                        {searchQuery ? "No purchased courses match your search query." : "Uplift your understanding and learning. Explore our catalog of spiritual courses and start learning today."}
-                    </p>
-                    <Link 
-                        href="/courses" 
-                        className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md hover:bg-primary-container transition-all hover:scale-105 active:scale-95"
-                    >
-                        Browse Courses
-                    </Link>
-                </div>
+                <EmptySanctuaryState 
+                    icon={<GraduationCap className="text-emerald-500" size={32} />}
+                    title={searchQuery ? "No matching courses" : "No purchased courses yet"}
+                    desc={searchQuery ? "No purchased courses match your search query." : "Uplift your understanding and learning. Explore our catalog of spiritual courses and start learning today."}
+                    btnText="Browse Courses"
+                    btnHref="/courses"
+                />
             )}
         </div>
     );

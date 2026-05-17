@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { useFeelings } from "@/hooks/use-feelings";
@@ -11,81 +11,27 @@ import { SelectedDuaCard } from "@/components/feelings/SelectedDuaCard";
 import { CommunityFeelings } from "@/components/feelings/CommunityFeelings";
 import { ShareReflectionCard } from "@/components/feelings/ShareReflectionCard";
 import { styles } from "./style";
-import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
+import { useSavedItems } from "@/hooks/use-saved-items";
 import { Heart, Sparkles } from "lucide-react";
 
 export default function FeelingToolUI() {
   const { feelings, selectedFeeling, selectedFeelingId, selectFeeling } = useFeelings();
 
   const { data: session } = authClient.useSession();
-  const [isSaved, setIsSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { toggleSaveItem, isItemSaved } = useSavedItems("feeling");
 
-  // Check if current feeling is saved
-  useEffect(() => {
-    if (!session) return;
-    
-    const checkSavedState = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items?type=feeling`, {
-          credentials: "include",
-          headers: await getAuthHeaders()
-        });
-        if (response.ok) {
-          const savedItems = await response.json();
-          const alreadySaved = savedItems.some((item: any) => item.itemId === selectedFeelingId);
-          setIsSaved(alreadySaved);
-        }
-      } catch (error) {
-        console.error("Failed to fetch saved Feeling state:", error);
-      }
-    };
-
-    checkSavedState();
-  }, [selectedFeelingId, session]);
+  const isSaved = isItemSaved("feeling", selectedFeelingId);
 
   const handleToggleSave = async () => {
-    if (!session || loading) return;
-    setLoading(true);
-
-    try {
-      if (isSaved) {
-        // Delete
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items/feeling/${selectedFeelingId}`, {
-          method: "DELETE",
-          credentials: "include",
-          headers: await getAuthHeaders()
-        });
-        if (response.ok) {
-          setIsSaved(false);
-        }
-      } else {
-        // Save
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items`, {
-          method: "POST",
-          headers: await getAuthHeaders(true),
-          credentials: "include",
-          body: JSON.stringify({
-            type: "feeling",
-            itemId: selectedFeelingId,
-            data: {
-              id: selectedFeeling.id,
-              label: selectedFeeling.label,
-              icon: selectedFeeling.icon,
-              quran: selectedFeeling.quran,
-              dua: selectedFeeling.dua
-            }
-          })
-        });
-        if (response.ok) {
-          setIsSaved(true);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to toggle save Feeling state:", error);
-    } finally {
-      setLoading(false);
-    }
+    if (!session) return;
+    await toggleSaveItem("feeling", selectedFeelingId, {
+      id: selectedFeeling.id,
+      label: selectedFeeling.label,
+      icon: selectedFeeling.icon,
+      quran: selectedFeeling.quran,
+      dua: selectedFeeling.dua
+    });
   };
 
   return (

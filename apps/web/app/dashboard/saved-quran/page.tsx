@@ -1,52 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import { Book, Search, ChevronRight, Bookmark, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useSavedItems } from "@/hooks/use-saved-items";
+import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
 
 export default function SavedQuranPage() {
     const { data: session } = authClient.useSession();
-    const [savedSurahs, setSavedSurahs] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { savedItems: savedSurahs, loading, deleteItemById } = useSavedItems("quran");
     const [searchQuery, setSearchQuery] = useState("");
-
-    const fetchSavedSurahs = async () => {
-        if (!session) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items?type=quran`, {
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setSavedSurahs(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch saved Surahs:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchSavedSurahs();
-    }, [session]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to remove this Surah from your sanctuary?")) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items/${id}`, {
-                method: "DELETE",
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                setSavedSurahs(prev => prev.filter(item => item._id !== id));
-            }
-        } catch (error) {
-            console.error("Failed to delete saved Surah:", error);
-        }
+        await deleteItemById(id);
     };
 
     if (!session) return null;
@@ -130,21 +98,13 @@ export default function SavedQuranPage() {
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto animate-in fade-in duration-500">
-                    <div className="w-16 h-16 rounded-3xl bg-surface-container flex items-center justify-center mb-5">
-                        <Book className="text-blue-500" size={32} />
-                    </div>
-                    <h4 className="text-xl font-bold text-primary mb-2 font-serif">No saved Surahs yet</h4>
-                    <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 font-medium">
-                        {searchQuery ? "No bookmarked Surahs match your search query." : "Uplift your spirit by studying the Noble Quran. Bookmark Surahs while reading to find them here."}
-                    </p>
-                    <Link 
-                        href="/quran" 
-                        className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md hover:bg-primary-container transition-all hover:scale-105 active:scale-95"
-                    >
-                        Browse Quran
-                    </Link>
-                </div>
+                <EmptySanctuaryState 
+                    icon={<Book className="text-blue-500" size={32} />}
+                    title={searchQuery ? "No matching Surahs" : "No saved Surahs yet"}
+                    desc={searchQuery ? "No bookmarked Surahs match your search query." : "Uplift your spirit by studying the Noble Quran. Bookmark Surahs while reading to find them here."}
+                    btnText="Browse Quran"
+                    btnHref="/quran"
+                />
             )}
         </div>
     );

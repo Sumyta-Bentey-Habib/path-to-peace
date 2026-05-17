@@ -1,52 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import { Heart, Search, ChevronRight, Bookmark, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useSavedItems } from "@/hooks/use-saved-items";
+import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
 
 export default function SavedDuasPage() {
     const { data: session } = authClient.useSession();
-    const [savedDuas, setSavedDuas] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { savedItems: savedDuas, loading, deleteItemById } = useSavedItems("dua");
     const [searchQuery, setSearchQuery] = useState("");
-
-    const fetchSavedDuas = async () => {
-        if (!session) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items?type=dua`, {
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setSavedDuas(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch saved Duas:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchSavedDuas();
-    }, [session]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to remove this supplication from your sanctuary?")) return;
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/saved-items/${id}`, {
-                method: "DELETE",
-                credentials: "include",
-                headers: await getAuthHeaders()
-            });
-            if (response.ok) {
-                setSavedDuas(prev => prev.filter(dua => dua._id !== id));
-            }
-        } catch (error) {
-            console.error("Failed to delete saved Dua:", error);
-        }
+        await deleteItemById(id);
     };
 
     if (!session) return null;
@@ -134,21 +102,13 @@ export default function SavedDuasPage() {
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto animate-in fade-in duration-500">
-                    <div className="w-16 h-16 rounded-3xl bg-surface-container flex items-center justify-center mb-5">
-                        <Heart className="text-rose-400" size={32} />
-                    </div>
-                    <h4 className="text-xl font-bold text-primary mb-2 font-serif">Your supplications list is empty</h4>
-                    <p className="text-sm text-on-surface-variant/80 leading-relaxed mb-6 font-medium">
-                        {searchQuery ? "No saved supplications match your search query." : "You haven't bookmarked any duas yet. Browse our selection and save those that touch your heart."}
-                    </p>
-                    <Link 
-                        href="/duas" 
-                        className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md hover:bg-primary-container transition-all hover:scale-105 active:scale-95"
-                    >
-                        Browse Supplications
-                    </Link>
-                </div>
+                <EmptySanctuaryState 
+                    icon={<Heart className="text-rose-400" size={32} />}
+                    title={searchQuery ? "No matching supplications" : "Your supplications list is empty"}
+                    desc={searchQuery ? "No saved supplications match your search query." : "You haven't bookmarked any duas yet. Browse our selection and save those that touch your heart."}
+                    btnText="Browse Supplications"
+                    btnHref="/duas"
+                />
             )}
         </div>
     );
