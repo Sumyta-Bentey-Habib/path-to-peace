@@ -6,15 +6,35 @@ import { Heart, Search, ChevronRight, Bookmark, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSavedItems } from "@/hooks/use-saved-items";
 import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function SavedDuasPage() {
     const { data: session } = authClient.useSession();
     const { savedItems: savedDuas, loading, deleteItemById } = useSavedItems("dua");
     const [searchQuery, setSearchQuery] = useState("");
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to remove this supplication from your sanctuary?")) return;
-        await deleteItemById(id);
+    // Custom Modal States
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteRequest = (id: string) => {
+        setDeleteItemId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteItemId) return;
+        setIsDeleting(true);
+        try {
+            await deleteItemById(deleteItemId);
+            setIsDeleteModalOpen(false);
+            setDeleteItemId(null);
+        } catch (error) {
+            console.error("Failed to delete item:", error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (!session) return null;
@@ -77,7 +97,7 @@ export default function SavedDuasPage() {
                                         {item.data.category}
                                     </span>
                                     <button 
-                                        onClick={() => handleDelete(item._id)}
+                                        onClick={() => handleDeleteRequest(item._id)}
                                         className="p-2 hover:bg-rose-50 rounded-full transition-colors text-rose-400 hover:text-rose-500 cursor-pointer active:scale-90"
                                         title="Remove from Sanctuary"
                                     >
@@ -110,6 +130,25 @@ export default function SavedDuasPage() {
                     btnHref="/duas"
                 />
             )}
+
+            {/* Reusable Sanctuary Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeleteItemId(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Remove from Sanctuary?"
+                description={
+                    <>
+                        Are you sure you want to remove this supplication from your sanctuary?
+                    </>
+                }
+                confirmLabel="Remove Dua"
+                isDanger={true}
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

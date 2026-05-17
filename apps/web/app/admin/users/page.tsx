@@ -3,20 +3,24 @@
 import { useEffect, useState } from "react";
 import { Users, Search, MoreVertical, Shield, Trash2, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/auth-client";
+import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Custom Modal States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/users`, {
         credentials: "include",
-        headers: {
-          "Authorization": `Bearer ${await authClient.getSession().then(s => s?.data?.session.token)}`
-        },
+        headers: await getAuthHeaders()
       });
 
       const data = await response.json();
@@ -34,20 +38,33 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+  const openDeleteModal = (user: any) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
 
-    
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setUserToDelete(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/users/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/users/${userToDelete.id}`, {
         method: "DELETE",
-        credentials: "include"
+        credentials: "include",
+        headers: await getAuthHeaders()
       });
       if (response.ok) {
-        setUsers(users.filter(u => u.id !== id));
+        setUsers(users.filter(u => u.id !== userToDelete.id));
+        closeDeleteModal();
       }
     } catch (error) {
       console.error("Failed to delete user:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -143,8 +160,8 @@ export default function UsersPage() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
-                        onClick={() => handleDelete(user.id)}
-                        className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        onClick={() => openDeleteModal(user)}
+                        className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                         title="Delete User"
                       >
                         <Trash2 size={18} />
@@ -166,6 +183,22 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* Reusable Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Delete Account?"
+        description={
+          <>
+            Are you sure you want to delete <span className="font-bold text-primary">{userToDelete?.name || userToDelete?.email}</span>? This action is permanent and will cascade delete all their active sessions, course enrollments, and progress.
+          </>
+        }
+        confirmLabel="Delete User"
+        isDanger={true}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

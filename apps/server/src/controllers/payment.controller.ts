@@ -1,26 +1,23 @@
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { ObjectId } from "mongodb";
 import { db } from "../db/mongo.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
+import { initiateSSLSession, validateSSLTransaction } from "../utils/sslcommerz.js";
 
 // Load environment variables immediately
 dotenv.config();
 
-const STORE_ID = process.env.SSL_STORE_ID;
-const STORE_PASSWORD = process.env.SSL_STORE_PASSWORD;
-const SESSION_API = process.env.SSL_SESSION_API;
-const VALIDATION_API = process.env.SSL_VALIDATION_API;
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL;
-const API_URL = process.env.BETTER_AUTH_URL;
 
-if (!STORE_ID || !STORE_PASSWORD || !SESSION_API || !VALIDATION_API || !WEB_URL || !API_URL) {
-    throw new Error("Missing critical SSLCommerz configuration in your backend environment variables (dotenv). Please configure them in apps/server/.env.");
+if (!WEB_URL) {
+    throw new Error("Missing NEXT_PUBLIC_WEB_URL environment variable. Please check your backend environment configuration.");
 }
 
 /**
  * Initiates SSLCommerz payment session for a course.
+ * Maps authenticated user details to payment registration.
  */
 export const initiatePayment = async (req: AuthRequest, res: Response) => {
     try {
@@ -55,7 +52,6 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: "This course is free. Please use the free enrollment option." });
         }
 
-        // The price is already configured in BDT directly
         const amountInBDT = Math.round(courseAmount);
         const tranId = `TXN-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
 
@@ -73,56 +69,24 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         };
         await db.collection("enrollments").insertOne(pendingEnrollment);
 
-        // Build SSLCommerz session request payload
-        const sslParams = new URLSearchParams();
-        sslParams.append("store_id", STORE_ID);
-        sslParams.append("store_passwd", STORE_PASSWORD);
-        sslParams.append("total_amount", amountInBDT.toFixed(2));
-        sslParams.append("currency", "BDT");
-        sslParams.append("tran_id", tranId);
-
-        // Redirect endpoints pointing back to our backend
-        sslParams.append("success_url", `${API_URL}/api/payment/success`);
-        sslParams.append("fail_url", `${API_URL}/api/payment/fail`);
-        sslParams.append("cancel_url", `${API_URL}/api/payment/cancel`);
-        sslParams.append("ipn_url", `${API_URL}/api/payment/ipn`);
-
-        // Customer Details
-        sslParams.append("cus_name", req.user?.name || "Kazi Hasibul Haque Hasib");
-        sslParams.append("cus_email", req.user?.email || "hasib46739@gmail.com");
-        sslParams.append("cus_add1", "Khulna, Bangladesh");
-        sslParams.append("cus_city", "Khulna");
-        sslParams.append("cus_state", "Khulna");
-        sslParams.append("cus_postcode", "9100");
-        sslParams.append("cus_country", "Bangladesh");
-        sslParams.append("cus_phone", (req.user as any)?.phone || "01812004315");
-
-        // Product & Shipping Profile Details (Required by SSLCommerz)
-        sslParams.append("shipping_method", "NO");
-        sslParams.append("num_of_item", "1");
-        sslParams.append("product_name", course.title);
-        sslParams.append("product_category", "Education");
-        sslParams.append("product_profile", "non-physical-goods");
-
         console.log(`[Payment] Initiating SSLCommerz session for Course: "${course.title}", Amount: ${amountInBDT} BDT, TranId: ${tranId}`);
 
-        // Hit SSLCommerz Session API
-        const response = await fetch(SESSION_API, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: sslParams.toString()
+        // Call the centralized SSLCommerz helper to create gateway session
+        const data = await initiateSSLSession({
+            amount: courseAmount,
+            tranId,
+            productName: course.title,
+            customerName: req.user?.name,
+            customerEmail: req.user?.email,
+            customerPhone: (req.user as any)?.phone
         });
 
-        const data: any = await response.json();
-
         if (data && data.status === "SUCCESS" && data.GatewayPageURL) {
-            console.log(`[Payment] Gateway Session Created. URL: ${data.GatewayPageURL}`);
+            console.log(`[Payment] Gateway Session Created successfully. URL: ${data.GatewayPageURL}`);
             return res.json({ url: data.GatewayPageURL });
         } else {
             console.error("[Payment] SSLCommerz Initiation Failed:", data);
-            // Delete the pending enrollment since initiation failed
+            // Roll back the pending enrollment since payment initialization failed
             await db.collection("enrollments").deleteOne({ tranId });
             return res.status(500).json({ message: "Failed to initiate payment with SSLCommerz gateway", details: data });
         }
@@ -134,10 +98,11 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
 
 /**
  * Handles the successful payment POST callback from SSLCommerz redirection.
+ * Validates the transaction with gateway and updates enrollment.
  */
-export const paymentSuccess = async (req: any, res: Response) => {
+export const paymentSuccess = async (req: Request, res: Response) => {
     try {
-        const { val_id, tran_id, amount, card_type, bank_tran_id } = req.body;
+        const { val_id, tran_id, card_type, bank_tran_id } = req.body;
         console.log(`[Payment] Received SUCCESS callback for TranId: ${tran_id}, ValId: ${val_id}`);
 
         if (!val_id) {
@@ -146,9 +111,7 @@ export const paymentSuccess = async (req: any, res: Response) => {
         }
 
         // Validate the transaction with SSLCommerz Validation API
-        const valUrl = `${VALIDATION_API}?val_id=${val_id}&store_id=${STORE_ID}&store_passwd=${STORE_PASSWORD}&format=json`;
-        const response = await fetch(valUrl);
-        const validationData: any = await response.json();
+        const validationData = await validateSSLTransaction(val_id as string);
 
         if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
             console.log(`[Payment] Validation Successful for TranId: ${tran_id}`);
@@ -181,7 +144,7 @@ export const paymentSuccess = async (req: any, res: Response) => {
         } else {
             console.error(`[Payment] Validation FAILED at SSLCommerz for TranId: ${tran_id}. Details:`, validationData);
 
-            // Mark transaction as failed
+            // Mark transaction as failed in the DB
             await db.collection("enrollments").updateOne(
                 { tranId: tran_id },
                 {
@@ -204,7 +167,7 @@ export const paymentSuccess = async (req: any, res: Response) => {
 /**
  * Handles the payment failure POST callback from SSLCommerz redirection.
  */
-export const paymentFail = async (req: any, res: Response) => {
+export const paymentFail = async (req: Request, res: Response) => {
     try {
         const { tran_id, error } = req.body;
         console.warn(`[Payment] Received FAIL callback for TranId: ${tran_id}, Error: ${error}`);
@@ -231,7 +194,7 @@ export const paymentFail = async (req: any, res: Response) => {
 /**
  * Handles the payment cancel POST callback from SSLCommerz redirection.
  */
-export const paymentCancel = async (req: any, res: Response) => {
+export const paymentCancel = async (req: Request, res: Response) => {
     try {
         const { tran_id } = req.body;
         console.warn(`[Payment] Received CANCEL callback for TranId: ${tran_id}`);
@@ -255,17 +218,16 @@ export const paymentCancel = async (req: any, res: Response) => {
 };
 
 /**
- * Handles SSLCommerz Instant Payment Notification (IPN).
+ * Handles SSLCommerz Instant Payment Notification (IPN) callbacks.
+ * Operates in background to validate payments if standard redirect redirects are interrupted.
  */
-export const paymentIpn = async (req: any, res: Response) => {
+export const paymentIpn = async (req: Request, res: Response) => {
     try {
-        const { val_id, tran_id, status, amount, card_type, bank_tran_id } = req.body;
+        const { val_id, tran_id, status, card_type, bank_tran_id } = req.body;
         console.log(`[Payment] Received IPN callback for TranId: ${tran_id}, Status: ${status}`);
 
         if (status === "VALID") {
-            const valUrl = `${VALIDATION_API}?val_id=${val_id}&store_id=${STORE_ID}&store_passwd=${STORE_PASSWORD}&format=json`;
-            const response = await fetch(valUrl);
-            const validationData: any = await response.json();
+            const validationData = await validateSSLTransaction(val_id as string);
 
             if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
                 const enrollment = await db.collection("enrollments").findOne({ tranId: tran_id });
@@ -295,7 +257,7 @@ export const paymentIpn = async (req: any, res: Response) => {
 };
 
 /**
- * Allows a user to enroll in a free course directly.
+ * Allows a user to enroll in a free course directly without hitting SSLCommerz.
  */
 export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
     try {

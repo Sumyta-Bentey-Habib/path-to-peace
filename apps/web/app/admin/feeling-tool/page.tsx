@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Heart, Plus, Trash2, Edit2, X, Search, Book } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function FeelingToolPage() {
   const [activeTab, setActiveTab] = useState<"duas" | "feelings">("duas");
@@ -11,6 +12,11 @@ export default function FeelingToolPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Custom Modal States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -31,16 +37,28 @@ export default function FeelingToolPage() {
     fetchData();
   }, [activeTab]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(`Are you sure you want to delete this ${activeTab.slice(0, -1)}?`)) return;
+  const handleDeleteRequest = (id: string) => {
+    setDeleteItemId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteItemId) return;
+    setIsDeleting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/${activeTab}/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/admin/${activeTab}/${deleteItemId}`, {
         method: "DELETE",
         credentials: "include"
       });
-      if (response.ok) fetchData();
+      if (response.ok) {
+        fetchData();
+        setIsDeleteModalOpen(false);
+        setDeleteItemId(null);
+      }
     } catch (error) {
       console.error(`Failed to delete ${activeTab.slice(0, -1)}:`, error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -123,8 +141,8 @@ export default function FeelingToolPage() {
                     <Edit2 size={18} />
                   </button>
                   <button 
-                    onClick={() => handleDelete(item._id)}
-                    className="p-3 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    onClick={() => handleDeleteRequest(item._id)}
+                    className="p-3 text-on-surface-variant hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -138,6 +156,25 @@ export default function FeelingToolPage() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteItemId(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title={activeTab === "duas" ? "Delete Supplication?" : "Delete Comfort State?"}
+        description={
+          <>
+            Are you sure you want to delete this {activeTab === "duas" ? "supplication (Dua)" : "comfort state"}? This action is permanent and will completely remove this spiritual resources from Path to Peace.
+          </>
+        }
+        confirmLabel={`Delete ${activeTab === "duas" ? "Dua" : "Feeling"}`}
+        isDanger={true}
+        isLoading={isDeleting}
+      />
 
       {/* Modal for Creating/Editing */}
       {isModalOpen && (

@@ -22,6 +22,7 @@ import { SanctuaryCard } from "@/components/dashboard/SanctuaryCard";
 import { EmptySanctuaryState } from "@/components/dashboard/EmptySanctuaryState";
 import { JourneyItem } from "@/components/dashboard/JourneyItem";
 import { FeelingIcon } from "@/components/dashboard/FeelingIcon";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 export default function DashboardPage() {
     const { data: session } = authClient.useSession();
@@ -29,11 +30,30 @@ export default function DashboardPage() {
     const { enrolledCourses, loading: loadingCourses } = useEnrolledCourses();
     const [activeTab, setActiveTab] = useState<"quran" | "dua" | "feeling">("quran");
 
+    // Custom Modal States
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const loading = loadingSaved || loadingCourses;
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to remove this item from your sanctuary?")) return;
-        await deleteItemById(id);
+    const handleDeleteRequest = (id: string) => {
+        setDeleteItemId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteItemId) return;
+        setIsDeleting(true);
+        try {
+            await deleteItemById(deleteItemId);
+            setIsDeleteModalOpen(false);
+            setDeleteItemId(null);
+        } catch (error) {
+            console.error("Failed to delete item:", error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (!session) return null;
@@ -211,7 +231,7 @@ export default function DashboardPage() {
                                                         {item.data.revelationType}
                                                     </span>
                                                     <button
-                                                        onClick={() => handleDelete(item._id)}
+                                                        onClick={() => handleDeleteRequest(item._id)}
                                                         className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                                                         title="Delete from Sanctuary"
                                                     >
@@ -256,7 +276,7 @@ export default function DashboardPage() {
                                                         {item.data.category}
                                                     </span>
                                                     <button
-                                                        onClick={() => handleDelete(item._id)}
+                                                        onClick={() => handleDeleteRequest(item._id)}
                                                         className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                                                         title="Delete from Sanctuary"
                                                     >
@@ -303,7 +323,7 @@ export default function DashboardPage() {
                                                         <span className="text-xs font-bold text-primary uppercase tracking-wider">{item.data.label}</span>
                                                     </div>
                                                     <button
-                                                        onClick={() => handleDelete(item._id)}
+                                                        onClick={() => handleDeleteRequest(item._id)}
                                                         className="p-1.5 hover:bg-red-50 text-on-surface-variant/40 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                                                         title="Delete from Sanctuary"
                                                     >
@@ -417,6 +437,25 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Reusable Sanctuary Deletion Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeleteItemId(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Remove from Sanctuary?"
+                description={
+                    <>
+                        Are you sure you want to remove this item from your sanctuary?
+                    </>
+                }
+                confirmLabel="Remove Item"
+                isDanger={true}
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

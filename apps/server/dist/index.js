@@ -108,7 +108,7 @@ var init_seed = __esm({
 // src/index.ts
 var import_express7 = __toESM(require("express"));
 var import_cors = __toESM(require("cors"));
-var import_dotenv3 = __toESM(require("dotenv"));
+var import_dotenv4 = __toESM(require("dotenv"));
 var import_morgan = __toESM(require("morgan"));
 
 // src/routes/index.ts
@@ -187,6 +187,7 @@ var adminMiddleware = async (req, res, next) => {
 };
 
 // src/controllers/user.controller.ts
+var import_mongodb3 = require("mongodb");
 init_mongo();
 var getProfile = async (req, res) => {
   const user = req.user;
@@ -206,7 +207,7 @@ var setMeAsAdmin = async (req, res) => {
   const user = req.user;
   try {
     await db.collection("users").updateOne(
-      { id: user.id },
+      { _id: new import_mongodb3.ObjectId(user.id) },
       { $set: { role: "admin" } }
     );
     res.json({ message: "You are now an admin. Please refresh the page." });
@@ -238,68 +239,74 @@ var getPublicCourses = async (req, res) => {
 };
 
 // src/controllers/payment.controller.ts
-init_mongo();
-var import_mongodb3 = require("mongodb");
 var import_crypto = __toESM(require("crypto"));
+var import_dotenv3 = __toESM(require("dotenv"));
+var import_mongodb4 = require("mongodb");
+init_mongo();
+
+// src/utils/sslcommerz.ts
 var import_dotenv2 = __toESM(require("dotenv"));
 import_dotenv2.default.config();
 var STORE_ID = process.env.SSL_STORE_ID;
 var STORE_PASSWORD = process.env.SSL_STORE_PASSWORD;
 var SESSION_API = process.env.SSL_SESSION_API;
 var VALIDATION_API = process.env.SSL_VALIDATION_API;
-var WEB_URL = process.env.NEXT_PUBLIC_WEB_URL;
 var API_URL = process.env.BETTER_AUTH_URL;
-if (!STORE_ID || !STORE_PASSWORD || !SESSION_API || !VALIDATION_API || !WEB_URL || !API_URL) {
-  throw new Error(
-    "Missing critical SSLCommerz configuration in backend environment variables. Please ensure SSL_STORE_ID, SSL_STORE_PASSWORD, SSL_SESSION_API, SSL_VALIDATION_API, NEXT_PUBLIC_WEB_URL, and BETTER_AUTH_URL are defined in your backend .env file."
-  );
-}
-var validateAndActivate = async (valId, tranId, cardType, bankTranId) => {
-  if (!valId) {
-    throw new Error("Missing validation ID (val_id)");
+var validateConfig = () => {
+  if (!STORE_ID || !STORE_PASSWORD || !SESSION_API || !VALIDATION_API || !API_URL) {
+    throw new Error(
+      "Missing critical SSLCommerz configuration in backend environment variables. Please configure SSL_STORE_ID, SSL_STORE_PASSWORD, SSL_SESSION_API, SSL_VALIDATION_API, and BETTER_AUTH_URL in your apps/server/.env file."
+    );
   }
+};
+var initiateSSLSession = async (params) => {
+  validateConfig();
+  const amountInBDT = Math.round(params.amount);
+  const sslParams = new URLSearchParams();
+  sslParams.append("store_id", STORE_ID);
+  sslParams.append("store_passwd", STORE_PASSWORD);
+  sslParams.append("total_amount", amountInBDT.toFixed(2));
+  sslParams.append("currency", "BDT");
+  sslParams.append("tran_id", params.tranId);
+  sslParams.append("success_url", `${API_URL}/api/payment/success`);
+  sslParams.append("fail_url", `${API_URL}/api/payment/fail`);
+  sslParams.append("cancel_url", `${API_URL}/api/payment/cancel`);
+  sslParams.append("ipn_url", `${API_URL}/api/payment/ipn`);
+  sslParams.append("cus_name", params.customerName || "Kazi Hasibul Haque Hasib");
+  sslParams.append("cus_email", params.customerEmail || "hasib46739@gmail.com");
+  sslParams.append("cus_add1", "Khulna, Bangladesh");
+  sslParams.append("cus_city", "Khulna");
+  sslParams.append("cus_state", "Khulna");
+  sslParams.append("cus_postcode", "9100");
+  sslParams.append("cus_country", "Bangladesh");
+  sslParams.append("cus_phone", params.customerPhone || "01812004315");
+  sslParams.append("shipping_method", "NO");
+  sslParams.append("num_of_item", "1");
+  sslParams.append("product_name", params.productName);
+  sslParams.append("product_category", "Education");
+  sslParams.append("product_profile", "non-physical-goods");
+  const response = await fetch(SESSION_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: sslParams.toString()
+  });
+  return await response.json();
+};
+var validateSSLTransaction = async (valId) => {
+  validateConfig();
   const valUrl = `${VALIDATION_API}?val_id=${valId}&store_id=${STORE_ID}&store_passwd=${STORE_PASSWORD}&format=json`;
   const response = await fetch(valUrl);
-  const validationData = await response.json();
-  const isValid = validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED");
-  if (!isValid) {
-    console.error(`[Payment] Validation FAILED at SSLCommerz for TranId: ${tranId}. Details:`, validationData);
-    await db.collection("enrollments").updateOne(
-      { tranId },
-      {
-        $set: {
-          status: "failed",
-          paymentStatus: "failed",
-          updatedAt: /* @__PURE__ */ new Date()
-        }
-      }
-    );
-    return { success: false, reason: "validation_failed" };
-  }
-  console.log(`[Payment] Validation Successful for TranId: ${tranId}`);
-  const enrollment = await db.collection("enrollments").findOne({ tranId });
-  if (!enrollment) {
-    console.error(`[Payment] Success callback: Enrollment not found for TranId ${tranId}`);
-    return { success: false, reason: "enrollment_not_found" };
-  }
-  if (enrollment.paymentStatus !== "paid") {
-    await db.collection("enrollments").updateOne(
-      { tranId },
-      {
-        $set: {
-          status: "active",
-          paymentStatus: "paid",
-          cardType: cardType || validationData.card_type,
-          bankTranId: bankTranId || validationData.bank_tran_id,
-          validationDetails: validationData,
-          updatedAt: /* @__PURE__ */ new Date()
-        }
-      }
-    );
-    console.log(`[Payment] Enrollment activated successfully for User: ${enrollment.userId}, Course: ${enrollment.courseId}`);
-  }
-  return { success: true, enrollment };
+  return await response.json();
 };
+
+// src/controllers/payment.controller.ts
+import_dotenv3.default.config();
+var WEB_URL = process.env.NEXT_PUBLIC_WEB_URL;
+if (!WEB_URL) {
+  throw new Error("Missing NEXT_PUBLIC_WEB_URL environment variable. Please check your backend environment configuration.");
+}
 var initiatePayment = async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -307,7 +314,7 @@ var initiatePayment = async (req, res) => {
     if (!courseId || !userId) {
       return res.status(400).json({ message: "Course ID and authentication are required" });
     }
-    const course = await db.collection("courses").findOne({ _id: new import_mongodb3.ObjectId(courseId) });
+    const course = await db.collection("courses").findOne({ _id: new import_mongodb4.ObjectId(courseId) });
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
@@ -337,40 +344,17 @@ var initiatePayment = async (req, res) => {
       updatedAt: /* @__PURE__ */ new Date()
     };
     await db.collection("enrollments").insertOne(pendingEnrollment);
-    const sslParams = new URLSearchParams();
-    sslParams.append("store_id", STORE_ID);
-    sslParams.append("store_passwd", STORE_PASSWORD);
-    sslParams.append("total_amount", amountInBDT.toFixed(2));
-    sslParams.append("currency", "BDT");
-    sslParams.append("tran_id", tranId);
-    sslParams.append("success_url", `${API_URL}/api/payment/success`);
-    sslParams.append("fail_url", `${API_URL}/api/payment/fail`);
-    sslParams.append("cancel_url", `${API_URL}/api/payment/cancel`);
-    sslParams.append("ipn_url", `${API_URL}/api/payment/ipn`);
-    sslParams.append("cus_name", req.user?.name || "Kazi Hasibul Haque Hasib");
-    sslParams.append("cus_email", req.user?.email || "hasib46739@gmail.com");
-    sslParams.append("cus_add1", "Khulna, Bangladesh");
-    sslParams.append("cus_city", "Khulna");
-    sslParams.append("cus_state", "Khulna");
-    sslParams.append("cus_postcode", "9100");
-    sslParams.append("cus_country", "Bangladesh");
-    sslParams.append("cus_phone", req.user?.phone || "01812004315");
-    sslParams.append("shipping_method", "NO");
-    sslParams.append("num_of_item", "1");
-    sslParams.append("product_name", course.title);
-    sslParams.append("product_category", "Education");
-    sslParams.append("product_profile", "non-physical-goods");
     console.log(`[Payment] Initiating SSLCommerz session for Course: "${course.title}", Amount: ${amountInBDT} BDT, TranId: ${tranId}`);
-    const response = await fetch(SESSION_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: sslParams.toString()
+    const data = await initiateSSLSession({
+      amount: courseAmount,
+      tranId,
+      productName: course.title,
+      customerName: req.user?.name,
+      customerEmail: req.user?.email,
+      customerPhone: req.user?.phone
     });
-    const data = await response.json();
     if (data && data.status === "SUCCESS" && data.GatewayPageURL) {
-      console.log(`[Payment] Gateway Session Created. URL: ${data.GatewayPageURL}`);
+      console.log(`[Payment] Gateway Session Created successfully. URL: ${data.GatewayPageURL}`);
       return res.json({ url: data.GatewayPageURL });
     } else {
       console.error("[Payment] SSLCommerz Initiation Failed:", data);
@@ -383,15 +367,49 @@ var initiatePayment = async (req, res) => {
   }
 };
 var paymentSuccess = async (req, res) => {
-  const { val_id, tran_id, card_type, bank_tran_id } = req.body;
-  console.log(`[Payment] Received SUCCESS callback for TranId: ${tran_id}, ValId: ${val_id}`);
   try {
-    const result = await validateAndActivate(val_id, tran_id, card_type, bank_tran_id);
-    if (result.success && result.enrollment) {
-      return res.redirect(`${WEB_URL}/payment/success?tran_id=${tran_id}&course_id=${result.enrollment.courseId}`);
+    const { val_id, tran_id, card_type, bank_tran_id } = req.body;
+    console.log(`[Payment] Received SUCCESS callback for TranId: ${tran_id}, ValId: ${val_id}`);
+    if (!val_id) {
+      console.error("[Payment] Missing validation ID (val_id) in success callback");
+      return res.redirect(`${WEB_URL}/payment/fail?reason=missing_val_id`);
+    }
+    const validationData = await validateSSLTransaction(val_id);
+    if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
+      console.log(`[Payment] Validation Successful for TranId: ${tran_id}`);
+      const enrollment = await db.collection("enrollments").findOne({ tranId: tran_id });
+      if (!enrollment) {
+        console.error(`[Payment] Success callback: Enrollment not found for TranId ${tran_id}`);
+        return res.redirect(`${WEB_URL}/payment/fail?reason=enrollment_not_found`);
+      }
+      await db.collection("enrollments").updateOne(
+        { tranId: tran_id },
+        {
+          $set: {
+            status: "active",
+            paymentStatus: "paid",
+            cardType: card_type || validationData.card_type,
+            bankTranId: bank_tran_id || validationData.bank_tran_id,
+            validationDetails: validationData,
+            updatedAt: /* @__PURE__ */ new Date()
+          }
+        }
+      );
+      console.log(`[Payment] Enrollment activated successfully for User: ${enrollment.userId}, Course: ${enrollment.courseId}`);
+      return res.redirect(`${WEB_URL}/payment/success?tran_id=${tran_id}&course_id=${enrollment.courseId}`);
     } else {
-      const reason = result.reason || "validation_failed";
-      return res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}&reason=${reason}`);
+      console.error(`[Payment] Validation FAILED at SSLCommerz for TranId: ${tran_id}. Details:`, validationData);
+      await db.collection("enrollments").updateOne(
+        { tranId: tran_id },
+        {
+          $set: {
+            status: "failed",
+            paymentStatus: "failed",
+            updatedAt: /* @__PURE__ */ new Date()
+          }
+        }
+      );
+      return res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}&reason=validation_failed`);
     }
   } catch (error) {
     console.error("[Payment] Success callback error:", error);
@@ -440,13 +458,29 @@ var paymentCancel = async (req, res) => {
   }
 };
 var paymentIpn = async (req, res) => {
-  const { val_id, tran_id, status, card_type, bank_tran_id } = req.body;
-  console.log(`[Payment] Received IPN callback for TranId: ${tran_id}, Status: ${status}`);
   try {
+    const { val_id, tran_id, status, card_type, bank_tran_id } = req.body;
+    console.log(`[Payment] Received IPN callback for TranId: ${tran_id}, Status: ${status}`);
     if (status === "VALID") {
-      const result = await validateAndActivate(val_id, tran_id, card_type, bank_tran_id);
-      if (result.success) {
-        console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
+      const validationData = await validateSSLTransaction(val_id);
+      if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
+        const enrollment = await db.collection("enrollments").findOne({ tranId: tran_id });
+        if (enrollment && enrollment.paymentStatus !== "paid") {
+          await db.collection("enrollments").updateOne(
+            { tranId: tran_id },
+            {
+              $set: {
+                status: "active",
+                paymentStatus: "paid",
+                cardType: card_type,
+                bankTranId: bank_tran_id,
+                validationDetails: validationData,
+                updatedAt: /* @__PURE__ */ new Date()
+              }
+            }
+          );
+          console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
+        }
       }
     }
     res.status(200).json({ status: "SUCCESS", message: "IPN Received" });
@@ -462,7 +496,7 @@ var enrollFreeCourse = async (req, res) => {
     if (!courseId || !userId) {
       return res.status(400).json({ message: "Course ID is required" });
     }
-    const course = await db.collection("courses").findOne({ _id: new import_mongodb3.ObjectId(courseId) });
+    const course = await db.collection("courses").findOne({ _id: new import_mongodb4.ObjectId(courseId) });
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
@@ -511,7 +545,7 @@ var getEnrolledCourses = async (req, res) => {
     if (enrollments.length === 0) {
       return res.json([]);
     }
-    const courseIds = enrollments.map((e) => new import_mongodb3.ObjectId(e.courseId));
+    const courseIds = enrollments.map((e) => new import_mongodb4.ObjectId(e.courseId));
     const courses = await db.collection("courses").find({
       _id: { $in: courseIds }
     }).toArray();
@@ -544,7 +578,7 @@ var import_express4 = require("express");
 
 // src/controllers/saved-items.controller.ts
 init_mongo();
-var import_mongodb4 = require("mongodb");
+var import_mongodb5 = require("mongodb");
 var getSavedItems = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -612,7 +646,7 @@ var deleteSavedItemById = async (req, res) => {
       return res.status(400).json({ message: "Missing item ID" });
     }
     const result = await db.collection("saved_items").deleteOne({
-      _id: new import_mongodb4.ObjectId(id),
+      _id: new import_mongodb5.ObjectId(id),
       userId
     });
     if (result.deletedCount === 0) {
@@ -665,37 +699,73 @@ var import_express5 = require("express");
 
 // src/controllers/admin.controller.ts
 init_mongo();
-var import_mongodb5 = require("mongodb");
+var import_mongodb6 = require("mongodb");
 var getUsers = async (req, res) => {
   try {
     const users = await db.collection("users").find({}).toArray();
-    res.json(users);
+    const mappedUsers = users.map((user) => ({
+      ...user,
+      id: user._id.toString()
+    }));
+    res.json(mappedUsers);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch users", error });
+    console.error("Failed to fetch users:", error);
+    res.status(500).json({ message: "Failed to fetch users" });
   }
 };
 var updateUser = async (req, res) => {
   const { id } = req.params;
-  const updateData = req.body;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  const updateData = { ...req.body };
+  delete updateData._id;
   try {
-    delete updateData._id;
     const result = await db.collection("users").updateOne(
-      { id },
-      // Better auth uses 'id' string usually, but check if it's _id
+      { _id: new import_mongodb6.ObjectId(id) },
       { $set: updateData }
     );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
     res.json({ message: "User updated successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update user", error });
+    console.error("Failed to update user:", error);
+    res.status(500).json({ message: "Failed to update user" });
   }
 };
 var deleteUser = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
   try {
-    const result = await db.collection("users").deleteOne({ id });
-    res.json({ message: "User deleted successfully", result });
+    const userObjectId = new import_mongodb6.ObjectId(id);
+    const user = await db.collection("users").findOne({ _id: userObjectId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const [userResult, accountsResult, sessionsResult, enrollmentsResult, savedItemsResult] = await Promise.all([
+      db.collection("users").deleteOne({ _id: userObjectId }),
+      db.collection("accounts").deleteMany({ userId: userObjectId }),
+      db.collection("sessions").deleteMany({ userId: userObjectId }),
+      db.collection("enrollments").deleteMany({ userId: id }),
+      db.collection("saved_items").deleteMany({ userId: id })
+    ]);
+    res.json({
+      message: "User and all associated data deleted successfully",
+      result: userResult,
+      details: {
+        userDeleted: userResult.deletedCount,
+        accountsDeleted: accountsResult.deletedCount,
+        sessionsDeleted: sessionsResult.deletedCount,
+        enrollmentsDeleted: enrollmentsResult.deletedCount,
+        savedItemsDeleted: savedItemsResult.deletedCount
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete user", error });
+    console.error("Failed to delete user:", error);
+    res.status(500).json({ message: "Failed to delete user" });
   }
 };
 var getCourses = async (req, res) => {
@@ -703,36 +773,76 @@ var getCourses = async (req, res) => {
     const courses = await db.collection("courses").find({}).toArray();
     res.json(courses);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch courses", error });
+    console.error("Failed to fetch courses:", error);
+    res.status(500).json({ message: "Failed to fetch courses" });
   }
 };
 var createCourse = async (req, res) => {
   try {
-    const result = await db.collection("courses").insertOne(req.body);
-    res.json({ message: "Course created successfully", result });
+    const { title, amount } = req.body;
+    if (!title || typeof title !== "string" || title.trim() === "") {
+      return res.status(400).json({ message: "Course title is required and must be a non-empty string" });
+    }
+    const parsedAmount = Number(amount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      return res.status(400).json({ message: "Course amount is required and must be a valid non-negative number" });
+    }
+    const courseData = {
+      ...req.body,
+      amount: parsedAmount,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    delete courseData._id;
+    const result = await db.collection("courses").insertOne(courseData);
+    res.status(201).json({ message: "Course created successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create course", error });
+    console.error("Failed to create course:", error);
+    res.status(500).json({ message: "Failed to create course" });
   }
 };
 var updateCourse = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  const updateData = { ...req.body };
+  delete updateData._id;
+  if (updateData.amount !== void 0) {
+    const parsedAmount = Number(updateData.amount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      return res.status(400).json({ message: "Course amount must be a valid non-negative number" });
+    }
+    updateData.amount = parsedAmount;
+  }
   try {
     const result = await db.collection("courses").updateOne(
-      { _id: new import_mongodb5.ObjectId(id) },
-      { $set: req.body }
+      { _id: new import_mongodb6.ObjectId(id) },
+      { $set: updateData }
     );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Course not found" });
+    }
     res.json({ message: "Course updated successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update course", error });
+    console.error("Failed to update course:", error);
+    res.status(500).json({ message: "Failed to update course" });
   }
 };
 var deleteCourse = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
   try {
-    const result = await db.collection("courses").deleteOne({ _id: new import_mongodb5.ObjectId(id) });
+    const result = await db.collection("courses").deleteOne({ _id: new import_mongodb6.ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Course not found" });
+    }
     res.json({ message: "Course deleted successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete course", error });
+    console.error("Failed to delete course:", error);
+    res.status(500).json({ message: "Failed to delete course" });
   }
 };
 var getDuas = async (req, res) => {
@@ -740,36 +850,64 @@ var getDuas = async (req, res) => {
     const duas = await db.collection("duas").find({}).toArray();
     res.json(duas);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch duas", error });
+    console.error("Failed to fetch duas:", error);
+    res.status(500).json({ message: "Failed to fetch duas" });
   }
 };
 var createDua = async (req, res) => {
   try {
-    const result = await db.collection("duas").insertOne(req.body);
-    res.json({ message: "Dua created successfully", result });
+    const { title } = req.body;
+    if (!title || typeof title !== "string" || title.trim() === "") {
+      return res.status(400).json({ message: "Dua title is required and must be a non-empty string" });
+    }
+    const duaData = {
+      ...req.body,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    delete duaData._id;
+    const result = await db.collection("duas").insertOne(duaData);
+    res.status(201).json({ message: "Dua created successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create dua", error });
+    console.error("Failed to create dua:", error);
+    res.status(500).json({ message: "Failed to create dua" });
   }
 };
 var updateDua = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  const updateData = { ...req.body };
+  delete updateData._id;
   try {
     const result = await db.collection("duas").updateOne(
-      { _id: new import_mongodb5.ObjectId(id) },
-      { $set: req.body }
+      { _id: new import_mongodb6.ObjectId(id) },
+      { $set: updateData }
     );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Dua not found" });
+    }
     res.json({ message: "Dua updated successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update dua", error });
+    console.error("Failed to update dua:", error);
+    res.status(500).json({ message: "Failed to update dua" });
   }
 };
 var deleteDua = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
   try {
-    const result = await db.collection("duas").deleteOne({ _id: new import_mongodb5.ObjectId(id) });
+    const result = await db.collection("duas").deleteOne({ _id: new import_mongodb6.ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Dua not found" });
+    }
     res.json({ message: "Dua deleted successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete dua", error });
+    console.error("Failed to delete dua:", error);
+    res.status(500).json({ message: "Failed to delete dua" });
   }
 };
 var getFeelings = async (req, res) => {
@@ -777,36 +915,67 @@ var getFeelings = async (req, res) => {
     const feelings = await db.collection("feelings").find({}).toArray();
     res.json(feelings);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch feelings", error });
+    console.error("Failed to fetch feelings:", error);
+    res.status(500).json({ message: "Failed to fetch feelings" });
   }
 };
 var createFeeling = async (req, res) => {
   try {
-    const result = await db.collection("feelings").insertOne(req.body);
-    res.json({ message: "Feeling created successfully", result });
+    const { label, icon } = req.body;
+    if (!label || typeof label !== "string" || label.trim() === "") {
+      return res.status(400).json({ message: "Feeling label is required and must be a non-empty string" });
+    }
+    if (!icon || typeof icon !== "string" || icon.trim() === "") {
+      return res.status(400).json({ message: "Feeling icon is required and must be a non-empty string" });
+    }
+    const feelingData = {
+      ...req.body,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    delete feelingData._id;
+    const result = await db.collection("feelings").insertOne(feelingData);
+    res.status(201).json({ message: "Feeling created successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create feeling", error });
+    console.error("Failed to create feeling:", error);
+    res.status(500).json({ message: "Failed to create feeling" });
   }
 };
 var updateFeeling = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  const updateData = { ...req.body };
+  delete updateData._id;
   try {
     const result = await db.collection("feelings").updateOne(
-      { _id: new import_mongodb5.ObjectId(id) },
-      { $set: req.body }
+      { _id: new import_mongodb6.ObjectId(id) },
+      { $set: updateData }
     );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Feeling not found" });
+    }
     res.json({ message: "Feeling updated successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update feeling", error });
+    console.error("Failed to update feeling:", error);
+    res.status(500).json({ message: "Failed to update feeling" });
   }
 };
 var deleteFeeling = async (req, res) => {
   const { id } = req.params;
+  if (typeof id !== "string" || !import_mongodb6.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
   try {
-    const result = await db.collection("feelings").deleteOne({ _id: new import_mongodb5.ObjectId(id) });
+    const result = await db.collection("feelings").deleteOne({ _id: new import_mongodb6.ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Feeling not found" });
+    }
     res.json({ message: "Feeling deleted successfully", result });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete feeling", error });
+    console.error("Failed to delete feeling:", error);
+    res.status(500).json({ message: "Failed to delete feeling" });
   }
 };
 var getStats = async (req, res) => {
@@ -824,7 +993,8 @@ var getStats = async (req, res) => {
       feelings
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch stats", error });
+    console.error("Failed to fetch stats:", error);
+    res.status(500).json({ message: "Failed to fetch stats" });
   }
 };
 
@@ -860,7 +1030,7 @@ router6.use("/admin", admin_routes_default);
 var routes_default = router6;
 
 // src/index.ts
-import_dotenv3.default.config();
+import_dotenv4.default.config();
 var app = (0, import_express7.default)();
 var port = process.env.PORT || 3001;
 app.use((0, import_morgan.default)("dev"));
