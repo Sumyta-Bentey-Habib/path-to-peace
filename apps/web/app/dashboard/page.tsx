@@ -18,7 +18,8 @@ import {
     Frown,
     User,
     Wind,
-    Anchor
+    Anchor,
+    ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,6 +37,7 @@ const FeelingIcon = ({ name, size = 20, className = "" }: any) => {
 export default function DashboardPage() {
     const { data: session } = authClient.useSession();
     const [savedItems, setSavedItems] = useState<any[]>([]);
+    const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"quran" | "dua" | "feeling">("quran");
 
@@ -57,8 +59,29 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchEnrolledCourses = async () => {
+        if (!session) return;
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/courses/enrolled`, {
+                credentials: "include",
+                headers: await getAuthHeaders()
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    setEnrolledCourses(data);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch enrolled courses:", error);
+        }
+    };
+
     useEffect(() => {
-        fetchSavedItems();
+        if (session) {
+            fetchSavedItems();
+            fetchEnrolledCourses();
+        }
     }, [session]);
 
     const handleDelete = async (id: string) => {
@@ -135,11 +158,11 @@ export default function DashboardPage() {
                         progressColor="bg-blue-500"
                     />
                     <SanctuaryCard 
-                        title="Active Course" 
-                        desc="Foundations of Faith" 
+                        title="Enrolled Courses" 
+                        desc={enrolledCourses.length > 0 ? `${enrolledCourses.length} Active Courses` : "No courses enrolled"} 
                         icon={<GraduationCap className="text-emerald-500" />} 
-                        href="/courses"
-                        progress={84}
+                        href="/dashboard/courses"
+                        progress={enrolledCourses.length > 0 ? 100 : 0}
                         progressColor="bg-emerald-500"
                     />
                     <SanctuaryCard 
@@ -151,6 +174,52 @@ export default function DashboardPage() {
                         progressColor="bg-amber-500"
                     />
                 </div>
+            </div>
+
+            {/* Enrolled Courses */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-meditative mt-6">
+                <div className="flex items-center justify-between mb-6 px-2">
+                    <div>
+                        <h3 className="text-2xl font-bold text-primary flex items-center gap-2">
+                            <GraduationCap size={24} className="text-emerald-500" />
+                            My Enrolled Courses
+                        </h3>
+                        <p className="text-xs text-on-surface-variant font-medium mt-1">Access your courses, materials, and track your progress.</p>
+                    </div>
+                </div>
+                
+                {enrolledCourses.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {enrolledCourses.map((course) => (
+                            <div key={course._id} className="bg-emerald-50/20 border border-emerald-500/10 p-6 rounded-3xl relative hover:shadow-meditative transition-all duration-300 group flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-[9px] font-bold uppercase tracking-widest text-emerald-700">
+                                            Active Student
+                                        </span>
+                                    </div>
+                                    <h4 className="text-xl font-bold text-primary font-serif mb-2">{course.title}</h4>
+                                    <p className="text-xs text-on-surface-variant line-clamp-2 font-medium mb-4">{course.description}</p>
+                                </div>
+                                <Link 
+                                    href="/courses" 
+                                    className="inline-flex items-center justify-between w-full px-4 py-3 bg-white border border-emerald-500/20 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all group-hover:border-emerald-500 duration-300"
+                                >
+                                    <span>Continue Course</span>
+                                    <ArrowRight size={14} />
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <EmptySanctuaryState 
+                        icon={<GraduationCap className="text-emerald-500" size={32} />}
+                        title="No Enrolled Courses"
+                        desc="Start your journey of divine knowledge. Explore our curated selection of spiritual courses designed to bring tranquility to your heart."
+                        btnText="Explore Courses"
+                        btnHref="/courses"
+                    />
+                )}
             </div>
 
             {/* My Saved Sanctuary */}

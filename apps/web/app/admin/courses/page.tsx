@@ -164,7 +164,7 @@ export default function CoursesPage() {
                 )}>
                   {course.status}
                 </span>
-                <span className="text-lg font-bold text-primary">${course.amount || "0.00"}</span>
+                <span className="text-lg font-bold text-primary">৳{course.amount || "0"}</span>
               </div>
             </div>
           ))}
@@ -230,7 +230,7 @@ export default function CoursesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-primary/60 mb-1 ml-1">Amount ($)</label>
+                  <label className="block text-sm font-bold text-primary/60 mb-1 ml-1">Amount (৳)</label>
                   <input 
                     type="number"
                     step="0.01"

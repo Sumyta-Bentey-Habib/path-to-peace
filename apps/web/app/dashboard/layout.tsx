@@ -50,7 +50,7 @@ export default function DashboardLayout({
         { href: "/dashboard/saved-quran", label: "Saved Quran", icon: Book },
         { href: "/dashboard/saved-duas", label: "Saved Duas", icon: Heart },
         { href: "/dashboard/saved-feelings", label: "Saved Feelings", icon: Smile },
-        { href: "/courses", label: "Courses", icon: GraduationCap },
+        { href: "/dashboard/courses", label: "Courses", icon: GraduationCap },
     ];
 
     const secondaryNavItems = [
