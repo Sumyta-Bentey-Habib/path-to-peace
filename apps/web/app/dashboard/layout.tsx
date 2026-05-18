@@ -5,10 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { 
     LayoutDashboard, 
     User, 
-    Settings, 
     LogOut, 
     Bell, 
-    Search,
     BookOpen,
     Book,
     GraduationCap,
@@ -53,11 +51,6 @@ export default function DashboardLayout({
         { href: "/dashboard/courses", label: "Courses", icon: GraduationCap },
     ];
 
-    const secondaryNavItems = [
-        { href: "/dashboard/profile", label: "Profile", icon: User },
-        { href: "/dashboard/settings", label: "Settings", icon: Settings },
-    ];
-
     return (
         <div className="min-h-screen bg-surface flex">
             {/* Sidebar */}
@@ -76,30 +69,6 @@ export default function DashboardLayout({
                         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Main Menu</p>
                         <nav className="space-y-1">
                             {navItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link 
-                                        key={item.href}
-                                        href={item.href} 
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                                            isActive 
-                                                ? "bg-primary text-white shadow-md shadow-primary/20" 
-                                                : "text-on-surface-variant hover:bg-surface-container hover:text-primary"
-                                        }`}
-                                    >
-                                        <Icon size={20} className={isActive ? "text-white" : "text-on-surface-variant group-hover:text-primary"} />
-                                        <span className="font-medium">{item.label}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </div>
-
-                    <div>
-                        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account</p>
-                        <nav className="space-y-1">
-                            {secondaryNavItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = pathname === item.href;
                                 return (
@@ -143,13 +112,9 @@ export default function DashboardLayout({
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
                 <header className="h-20 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-8 sticky top-0 z-20">
-                    <div className="flex items-center gap-4 bg-surface-container px-4 py-2.5 rounded-2xl w-full max-w-md focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                        <Search size={18} className="text-on-surface-variant" />
-                        <input 
-                            type="text" 
-                            placeholder="Search your sanctuary..." 
-                            className="bg-transparent border-none focus:outline-none text-sm w-full placeholder:text-on-surface-variant/60"
-                        />
+                    <div className="flex flex-col text-left">
+                        <span className="text-sm font-serif font-bold text-primary">Assalamu Alaikum, {session.user.name.split(" ")[0]}</span>
+                        <span className="text-[10px] text-on-surface-variant/60 font-medium">May your day be filled with peace and light.</span>
                     </div>
 
                     <div className="flex items-center gap-6">

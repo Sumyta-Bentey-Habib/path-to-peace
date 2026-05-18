@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Settings, 
-  BookOpen, 
-  Heart, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Heart,
   FileText,
   LogOut,
   Menu,
@@ -27,7 +26,6 @@ const sidebarItems = [
   { name: "Feeling Tool", href: "/admin/feeling-tool", icon: Heart },
   { name: "Duas", href: "/admin/duas", icon: FileText },
   { name: "System Logs", href: "/admin/data", icon: Database },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function AdminLayoutWrapper({
@@ -41,13 +39,13 @@ export default function AdminLayoutWrapper({
   return (
     <div className={styles.adminLayout}>
       {!isSidebarOpen && (
-        <div 
-          className={styles.mobileBackdrop} 
+        <div
+          className={styles.mobileBackdrop}
           onClick={() => setIsSidebarOpen(true)}
         />
       )}
 
-      <aside 
+      <aside
         className={cn(
           styles.adminSidebar,
           !isSidebarOpen && "-translate-x-full"
@@ -61,7 +59,7 @@ export default function AdminLayoutWrapper({
               </div>
               <span className={styles.sidebarLogo}>Path to Peace</span>
             </Link>
-            <button 
+            <button
               className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
               onClick={() => setIsSidebarOpen(false)}
             >
@@ -122,13 +120,13 @@ export default function AdminLayoutWrapper({
 
       <main className={styles.adminMain}>
         <header className={styles.adminHeader}>
-          <button 
+          <button
             className={styles.mobileMenuBtn}
             onClick={() => setIsSidebarOpen(true)}
           >
             <Menu size={24} className="text-primary" />
           </button>
-          
+
           <div className="flex items-center gap-6">
             <div className="hidden md:flex flex-col items-end">
               <span className="text-[10px] font-bold text-primary/50 uppercase tracking-widest">System Status</span>
