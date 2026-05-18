@@ -18,7 +18,6 @@ export function Navbar() {
     { name: "Courses", href: "/courses" },
     { name: "Stories", href: "/stories" },
     { name: "Prayer Time", href: "/prayer-times" },
-    ...(session ? [{ name: "Dashboard", href: session.user.role === "admin" ? "/admin" : "/dashboard" }] : []),
   ];
 
   const handleLogout = async () => {
