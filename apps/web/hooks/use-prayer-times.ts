@@ -58,9 +58,18 @@ export function usePrayerTimes() {
 
   const fetchAzanTimes = async (lat: number, lng: number) => {
     try {
-      const response = await fetch(
-        `https://api.aladhan.com/v1/timings/today?latitude=${lat}&longitude=${lng}&method=2`
-      );
+      // Fetch both prayer times and reverse geocoding info in parallel to keep page loading fast
+      const [azanRes, geoRes] = await Promise.allSettled([
+        fetch(`https://api.aladhan.com/v1/timings/today?latitude=${lat}&longitude=${lng}&method=2`),
+        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`)
+      ]);
+
+      if (azanRes.status === "rejected") {
+        throw azanRes.reason;
+      }
+
+      const response = azanRes.value;
+      if (!response.ok) throw new Error("Failed to fetch prayer times");
       
       const data = await response.json();
       const timings = data.data.timings;
@@ -81,12 +90,26 @@ export function usePrayerTimes() {
         gregorian: date.gregorian.date,
         hijri: `${date.hijri.day} ${date.hijri.month.en} ${date.hijri.year} AH`,
       });
-      setCityInfo({
-        city: meta.timezone.split("/")[1]?.replace("_", " ") || "Your Location",
-        country: meta.timezone.split("/")[0] || "",
-      });
+
+      // Default to timezone-based names
+      let city = meta.timezone.split("/")[1]?.replace("_", " ") || "Your Location";
+      let country = meta.timezone.split("/")[0] || "";
+
+      // If geocoding succeeded, extract more accurate info
+      if (geoRes.status === "fulfilled" && geoRes.value.ok) {
+        try {
+          const geoData = await geoRes.value.json();
+          city = geoData.city || geoData.locality || geoData.principalSubdivision || city;
+          country = geoData.countryName || country;
+        } catch (e) {
+          console.error("Failed to parse geo response:", e);
+        }
+      }
+
+      setCityInfo({ city, country });
       setLoading(false);
     } catch (err) {
+      console.error("Error fetching prayer times:", err);
       setError("Failed to fetch prayer times.");
       setLoading(false);
     }
