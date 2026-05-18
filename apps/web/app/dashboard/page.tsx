@@ -75,7 +75,7 @@ export default function DashboardPage() {
                         <Sparkles size={12} className="text-secondary-container" />
                         Daily Inspiration
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 font-serif leading-tight">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 font-serif leading-tight text-white">
                         Peace be with you, <span className="text-secondary-container">{firstName}</span>.
                     </h2>
                     <p className="text-lg text-white/80 font-medium italic leading-relaxed">
