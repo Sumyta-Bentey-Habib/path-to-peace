@@ -46,9 +46,9 @@ export default function PurchasedCoursesPage() {
             <div className="flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search your purchased courses..." 
+                    <input
+                        type="text"
+                        placeholder="Search your purchased courses..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-12 pr-4 py-3 bg-white border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
@@ -77,7 +77,7 @@ export default function PurchasedCoursesPage() {
                                 <p className="text-xs text-on-surface-variant line-clamp-2 font-medium mb-4">
                                     {course.description}
                                 </p>
-                                
+
                                 <div className="flex items-center gap-4 mb-4 text-xs font-bold text-on-surface-variant/80">
                                     {course.duration && (
                                         <div className="flex items-center gap-1">
@@ -93,8 +93,8 @@ export default function PurchasedCoursesPage() {
                                     )}
                                 </div>
                             </div>
-                            <Link 
-                                href="/courses"
+                            <Link
+                                href="#"
                                 className="inline-flex items-center justify-between w-full px-4 py-3 bg-emerald-50/30 border border-emerald-500/15 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all duration-300"
                             >
                                 <span>Continue Course</span>
@@ -104,7 +104,7 @@ export default function PurchasedCoursesPage() {
                     ))}
                 </div>
             ) : (
-                <EmptySanctuaryState 
+                <EmptySanctuaryState
                     icon={<GraduationCap className="text-emerald-500" size={32} />}
                     title={searchQuery ? "No matching courses" : "No purchased courses yet"}
                     desc={searchQuery ? "No purchased courses match your search query." : "Uplift your understanding and learning. Explore our catalog of spiritual courses and start learning today."}
