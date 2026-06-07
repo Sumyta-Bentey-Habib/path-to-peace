@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export function UpcomingPrayer() {
-  const { nextPrayer, countdown, loading, error } = usePrayerTimes();
+  const { nextPrayer, currentPrayer, countdown, loading, error } = usePrayerTimes();
 
   if (loading) {
     return (
@@ -26,21 +26,24 @@ export function UpcomingPrayer() {
       className="group block bg-surface-container-lowest/95 backdrop-blur-xl p-6 rounded-2xl shadow-meditative border border-primary/5 transition-all hover:border-primary/20 hover:shadow-2xl"
     >
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-secondary font-serif italic text-sm font-bold tracking-wide">Upcoming Prayer</h4>
+        <h4 className="text-secondary font-serif italic text-sm font-bold tracking-wide">
+          {currentPrayer ? `Now: ${currentPrayer.name}` : "Prayer Times"}
+        </h4>
         <div className="p-2 rounded-full bg-primary/5 text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
           <Clock className="w-3.5 h-3.5" />
         </div>
       </div>
       
-      <div className="space-y-1">
+      <div className="space-y-0.5">
+        <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest block">Next Prayer</span>
         <p className="text-2xl font-serif text-primary italic">
           {nextPrayer.name}
         </p>
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-sans font-semibold text-on-surface-variant/60">
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-xs font-sans font-semibold text-on-surface-variant/60">
             Starts in <span className="text-primary">{countdown}</span>
           </p>
-          <ArrowRight className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="w-3.5 h-3.5 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
         </div>
       </div>
     </Link>

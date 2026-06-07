@@ -16,6 +16,7 @@ export default function PrayerTimesUI() {
     dates,
     prayerTimes,
     nextPrayer,
+    currentPrayer,
     countdown,
     loading,
     error,
@@ -70,6 +71,7 @@ export default function PrayerTimesUI() {
         <PrayerTimesGrid
           times={prayerTimes}
           nextPrayerId={nextPrayer.id}
+          currentPrayerId={currentPrayer?.id}
         />
 
         <QiblaCard direction={118.98} />

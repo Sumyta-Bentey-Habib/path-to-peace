@@ -60,7 +60,7 @@ export function usePrayerTimes() {
     try {
       // Fetch both prayer times and reverse geocoding info in parallel to keep page loading fast
       const [azanRes, geoRes] = await Promise.allSettled([
-        fetch(`https://api.aladhan.com/v1/timings/today?latitude=${lat}&longitude=${lng}&method=2`),
+        fetch(`https://api.aladhan.com/v1/timings/today?latitude=${lat}&longitude=${lng}&method=1&school=1`),
         fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`)
       ]);
 
@@ -115,25 +115,87 @@ export function usePrayerTimes() {
     }
   };
 
-  const nextPrayer = useMemo(() => {
+  const timesMap = useMemo(() => {
     if (prayerTimes.length === 0) return null;
+    const map: Record<string, number> = {};
+    prayerTimes.forEach((pt) => {
+      const [hours, minutes] = pt.time.split(":").map(Number);
+      map[pt.id] = hours * 60 + minutes;
+    });
+    return map;
+  }, [prayerTimes]);
+
+  const currentPrayer = useMemo(() => {
+    if (prayerTimes.length === 0 || !timesMap) return null;
+
+    const now = currentTime.getHours() * 60 + currentTime.getMinutes();
+    
+    const fajr = timesMap["fajr"];
+    const sunrise = timesMap["sunrise"];
+    const dhuhr = timesMap["dhuhr"];
+    const asr = timesMap["asr"];
+    const maghrib = timesMap["maghrib"];
+    const isha = timesMap["isha"];
+
+    // Fajr: from Fajr start until Sunrise
+    if (now >= fajr && now < sunrise) {
+      return prayerTimes.find((p) => p.id === "fajr") || null;
+    }
+    // Dhuhr: from Dhuhr start until Asr
+    if (now >= dhuhr && now < asr) {
+      return prayerTimes.find((p) => p.id === "dhuhr") || null;
+    }
+    // Asr: from Asr start until Maghrib
+    if (now >= asr && now < maghrib) {
+      return prayerTimes.find((p) => p.id === "asr") || null;
+    }
+    // Maghrib: from Maghrib start until Isha
+    if (now >= maghrib && now < isha) {
+      return prayerTimes.find((p) => p.id === "maghrib") || null;
+    }
+    // Isha: from Isha start until Fajr of next day
+    if (now >= isha || now < fajr) {
+      return prayerTimes.find((p) => p.id === "isha") || null;
+    }
+
+    return null; // No current prayer (e.g. between sunrise and dhuhr)
+  }, [currentTime, prayerTimes, timesMap]);
+
+  const nextPrayer = useMemo(() => {
+    if (prayerTimes.length === 0 || !timesMap) return null;
 
     const now = currentTime.getHours() * 60 + currentTime.getMinutes();
 
-    const timesInMinutes = prayerTimes.map((pt) => {
-      const [hours, minutes] = pt.time.split(":").map(Number);
-      return { ...pt, totalMinutes: hours * 60 + minutes };
-    });
+    const fajr = timesMap["fajr"];
+    const dhuhr = timesMap["dhuhr"];
+    const asr = timesMap["asr"];
+    const maghrib = timesMap["maghrib"];
+    const isha = timesMap["isha"];
 
-    const next = timesInMinutes.find((pt) => pt.totalMinutes > now);
-    return next || timesInMinutes[0];
-  }, [currentTime, prayerTimes]);
+    if (now < fajr) {
+      return prayerTimes.find((p) => p.id === "fajr") || null;
+    }
+    if (now >= fajr && now < dhuhr) {
+      return prayerTimes.find((p) => p.id === "dhuhr") || null;
+    }
+    if (now >= dhuhr && now < asr) {
+      return prayerTimes.find((p) => p.id === "asr") || null;
+    }
+    if (now >= asr && now < maghrib) {
+      return prayerTimes.find((p) => p.id === "maghrib") || null;
+    }
+    if (now >= maghrib && now < isha) {
+      return prayerTimes.find((p) => p.id === "isha") || null;
+    }
+    // After Isha, the next prayer is Fajr
+    return prayerTimes.find((p) => p.id === "fajr") || null;
+  }, [currentTime, prayerTimes, timesMap]);
 
   const countdown = useMemo(() => {
     if (!nextPrayer) return "";
 
     const [h, m] = nextPrayer.time.split(":").map(Number);
-    const targetDate = new Date();
+    const targetDate = new Date(currentTime);
     targetDate.setHours(h, m, 0, 0);
 
     if (currentTime > targetDate) {
@@ -155,6 +217,7 @@ export function usePrayerTimes() {
     dates,
     prayerTimes,
     nextPrayer,
+    currentPrayer,
     countdown,
     loading,
     error,
