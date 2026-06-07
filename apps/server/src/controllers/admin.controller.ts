@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { db } from "../db/mongo.js";
 import { ObjectId } from "mongodb";
+import fs from "fs";
+import path from "path";
 
 // --- Users ---
 
@@ -286,99 +288,6 @@ export const deleteDua = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Failed to delete dua:", error);
         res.status(500).json({ message: "Failed to delete dua" });
-    }
-};
-
-// --- Feelings ---
-
-/**
- * Fetch all feelings/emotions tools.
- */
-export const getFeelings = async (req: Request, res: Response) => {
-    try {
-        const feelings = await db.collection("feelings").find({}).toArray();
-        res.json(feelings);
-    } catch (error) {
-        console.error("Failed to fetch feelings:", error);
-        res.status(500).json({ message: "Failed to fetch feelings" });
-    }
-};
-
-/**
- * Creates a new Feeling Tool with input validation.
- */
-export const createFeeling = async (req: Request, res: Response) => {
-    try {
-        const { label, icon } = req.body;
-        if (!label || typeof label !== "string" || label.trim() === "") {
-            return res.status(400).json({ message: "Feeling label is required and must be a non-empty string" });
-        }
-        if (!icon || typeof icon !== "string" || icon.trim() === "") {
-            return res.status(400).json({ message: "Feeling icon is required and must be a non-empty string" });
-        }
-
-        const feelingData = {
-            ...req.body,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        delete feelingData._id;
-
-        const result = await db.collection("feelings").insertOne(feelingData);
-        res.status(201).json({ message: "Feeling created successfully", result });
-    } catch (error) {
-        console.error("Failed to create feeling:", error);
-        res.status(500).json({ message: "Failed to create feeling" });
-    }
-};
-
-/**
- * Updates a Feeling Tool by ID.
- */
-export const updateFeeling = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid ID format" });
-    }
-
-    const updateData = { ...req.body };
-    delete updateData._id; // Prevent updating immutable MongoDB ID
-
-    try {
-        const result = await db.collection("feelings").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ message: "Feeling not found" });
-        }
-
-        res.json({ message: "Feeling updated successfully", result });
-    } catch (error) {
-        console.error("Failed to update feeling:", error);
-        res.status(500).json({ message: "Failed to update feeling" });
-    }
-};
-
-/**
- * Deletes a Feeling Tool by ID.
- */
-export const deleteFeeling = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid ID format" });
-    }
-
-    try {
-        const result = await db.collection("feelings").deleteOne({ _id: new ObjectId(id) });
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: "Feeling not found" });
-        }
-        res.json({ message: "Feeling deleted successfully", result });
-    } catch (error) {
-        console.error("Failed to delete feeling:", error);
-        res.status(500).json({ message: "Failed to delete feeling" });
     }
 };
 

@@ -58,12 +58,12 @@ export default function SavedFeelingsPage() {
                         <Smile className="text-amber-500" size={32} />
                         Saved Reflections
                     </h2>
-                    <p className="text-on-surface-variant mt-1 font-medium">Your sanctuary of emotional state reflections and comforting remedies.</p>
+                    <p className="text-on-surface-variant mt-1 font-medium">Your sanctuary of saved supplication categories, comforting verses, and remedies.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Link href="/feeling-tool" className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/10 hover:bg-primary-container transition-all hover:scale-105 active:scale-95">
                         <Bookmark size={16} />
-                        Check Feeling
+                        Check Sanctuary
                     </Link>
                 </div>
             </header>
@@ -98,7 +98,7 @@ export default function SavedFeelingsPage() {
                                         <FeelingIcon name={item.data.icon} size={24} />
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 block">Feeling Comfort</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60 block">Sanctuary Reflection</span>
                                         <h4 className="text-xl font-bold text-primary font-serif">{item.data.label}</h4>
                                     </div>
                                 </div>
@@ -179,7 +179,7 @@ export default function SavedFeelingsPage() {
                 title="Remove from Sanctuary?"
                 description={
                     <>
-                        Are you sure you want to remove this emotional comfort state from your sanctuary?
+                        Are you sure you want to remove this reflection or category from your sanctuary?
                     </>
                 }
                 confirmLabel="Remove Reflection"

@@ -5,6 +5,7 @@ import userRoutes from "./user.routes.js";
 import courseRoutes from "./course.routes.js";
 import paymentRoutes from "./payment.routes.js";
 import savedItemsRoutes from "./saved-items.routes.js";
+import feelingRoutes from "./feeling.routes.js";
 import adminRoutes from "./admin.routes.js";
 
 const router = Router();
@@ -17,6 +18,7 @@ router.use("/", userRoutes);
 router.use("/", courseRoutes);
 router.use("/", paymentRoutes);
 router.use("/", savedItemsRoutes);
+router.use("/", feelingRoutes);
 router.use("/admin", adminRoutes);
 
 export default router;
