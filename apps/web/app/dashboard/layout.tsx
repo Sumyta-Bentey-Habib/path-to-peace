@@ -12,7 +12,8 @@ import {
     GraduationCap,
     Smile,
     Heart,
-    ArrowLeft
+    ArrowLeft,
+    MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 
@@ -49,6 +50,7 @@ export default function DashboardLayout({
         { href: "/dashboard/saved-duas", label: "Saved Duas", icon: Heart },
         { href: "/dashboard/saved-feelings", label: "Saved Feelings", icon: Smile },
         { href: "/dashboard/courses", label: "Courses", icon: GraduationCap },
+        { href: "/dashboard/scholar", label: "Ask a Scholar", icon: MessageSquare },
     ];
 
     return (
