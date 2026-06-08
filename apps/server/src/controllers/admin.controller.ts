@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb";
 import fs from "fs";
 import path from "path";
 
-// --- Users ---
+
 
 /**
  * Fetch all users in the system.
@@ -69,7 +69,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        
+
         // Cascade delete all user-related data to ensure DB integrity
         const [userResult, accountsResult, sessionsResult, enrollmentsResult, savedItemsResult] = await Promise.all([
             db.collection("users").deleteOne({ _id: userObjectId }),
@@ -78,9 +78,9 @@ export const deleteUser = async (req: Request, res: Response) => {
             db.collection("enrollments").deleteMany({ userId: id }),
             db.collection("saved_items").deleteMany({ userId: id })
         ]);
-        
-        res.json({ 
-            message: "User and all associated data deleted successfully", 
+
+        res.json({
+            message: "User and all associated data deleted successfully",
             result: userResult,
             details: {
                 userDeleted: userResult.deletedCount,
@@ -121,7 +121,7 @@ export const createCourse = async (req: Request, res: Response) => {
         if (!title || typeof title !== "string" || title.trim() === "") {
             return res.status(400).json({ message: "Course title is required and must be a non-empty string" });
         }
-        
+
         const parsedAmount = Number(amount);
         if (isNaN(parsedAmount) || parsedAmount < 0) {
             return res.status(400).json({ message: "Course amount is required and must be a valid non-negative number" });
@@ -288,6 +288,99 @@ export const deleteDua = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Failed to delete dua:", error);
         res.status(500).json({ message: "Failed to delete dua" });
+    }
+};
+
+// --- Feelings ---
+
+/**
+ * Fetch all feelings.
+ */
+export const getFeelings = async (req: Request, res: Response) => {
+    try {
+        const feelings = await db.collection("feelings").find({}).toArray();
+        res.json(feelings);
+    } catch (error) {
+        console.error("Failed to fetch feelings:", error);
+        res.status(500).json({ message: "Failed to fetch feelings" });
+    }
+};
+
+/**
+ * Creates a new feeling with input validation.
+ */
+export const createFeeling = async (req: Request, res: Response) => {
+    try {
+        const { label, icon } = req.body;
+        if (!label || typeof label !== "string" || label.trim() === "") {
+            return res.status(400).json({ message: "Feeling label is required and must be a non-empty string" });
+        }
+        if (!icon || typeof icon !== "string" || icon.trim() === "") {
+            return res.status(400).json({ message: "Feeling icon is required and must be a non-empty string" });
+        }
+
+        const feelingData = {
+            ...req.body,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        delete feelingData._id;
+
+        const result = await db.collection("feelings").insertOne(feelingData);
+        res.status(201).json({ message: "Feeling created successfully", result });
+    } catch (error) {
+        console.error("Failed to create feeling:", error);
+        res.status(500).json({ message: "Failed to create feeling" });
+    }
+};
+
+/**
+ * Updates a feeling by ID.
+ */
+export const updateFeeling = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const updateData = { ...req.body };
+    delete updateData._id;
+
+    try {
+        const result = await db.collection("feelings").updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: "Feeling not found" });
+        }
+
+        res.json({ message: "Feeling updated successfully", result });
+    } catch (error) {
+        console.error("Failed to update feeling:", error);
+        res.status(500).json({ message: "Failed to update feeling" });
+    }
+};
+
+/**
+ * Deletes a feeling by ID.
+ */
+export const deleteFeeling = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    try {
+        const result = await db.collection("feelings").deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Feeling not found" });
+        }
+        res.json({ message: "Feeling deleted successfully", result });
+    } catch (error) {
+        console.error("Failed to delete feeling:", error);
+        res.status(500).json({ message: "Failed to delete feeling" });
     }
 };
 
