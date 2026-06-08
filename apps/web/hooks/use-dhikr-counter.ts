@@ -45,15 +45,14 @@ export function useDhikrCounter() {
       navigator.vibrate(12);
     }
 
-    setCount((prev) => {
-      const next = prev + 1;
-      if (next >= activeDhikr.target) {
-        setCompletedCycles((c) => c + 1);
-        return 0; // Reset count upon reaching target
-      }
-      return next;
-    });
-  }, [activeDhikr.target, playClickSound]);
+    const nextCount = count + 1;
+    if (nextCount >= activeDhikr.target) {
+      setCount(0);
+      setCompletedCycles((c) => c + 1);
+    } else {
+      setCount(nextCount);
+    }
+  }, [count, activeDhikr.target, playClickSound]);
 
   const handleReset = useCallback(() => {
     setCount(0);
