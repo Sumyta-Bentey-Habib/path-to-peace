@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import dotenv from "dotenv";
 import { Request, Response } from "express";
-import { ObjectId } from "mongodb";
-import { db } from "../db/mongo.js";
+import { FieldPath } from "firebase-admin/firestore";
+import { db } from "../db/firestore.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { initiateSSLSession, validateSSLTransaction } from "../utils/sslcommerz.js";
 
@@ -15,10 +15,7 @@ if (!WEB_URL) {
     throw new Error("Missing NEXT_PUBLIC_WEB_URL environment variable. Please check your backend environment configuration.");
 }
 
-/**
- * Initiates SSLCommerz payment session for a course.
- * Maps authenticated user details to payment registration.
- */
+
 export const initiatePayment = async (req: AuthRequest, res: Response) => {
     try {
         const { courseId } = req.body;
@@ -28,20 +25,26 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: "Course ID and authentication are required" });
         }
 
-        // Fetch course details
-        const course = await db.collection("courses").findOne({ _id: new ObjectId(courseId as string) });
-        if (!course) {
-            return res.status(404).json({ message: "Course not found" });
+        if (req.user?.role === "admin") {
+            return res.status(403).json({ message: "Administrators cannot purchase courses." });
         }
 
-        // Check if user is already enrolled
-        const existingEnrollment = await db.collection("enrollments").findOne({
-            userId,
-            courseId,
-            paymentStatus: "paid"
-        });
+        // Fetch course details
+        const courseDoc = await db.collection("courses").doc(courseId as string).get();
+        if (!courseDoc.exists) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+        const course = courseDoc.data()!;
 
-        if (existingEnrollment) {
+        // Check if user is already enrolled
+        const existingEnrollmentSnapshot = await db.collection("enrollments")
+            .where("userId", "==", userId)
+            .where("courseId", "==", courseId)
+            .where("paymentStatus", "==", "paid")
+            .limit(1)
+            .get();
+
+        if (!existingEnrollmentSnapshot.empty) {
             return res.status(400).json({ message: "You are already enrolled in this course." });
         }
 
@@ -67,7 +70,7 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        await db.collection("enrollments").insertOne(pendingEnrollment);
+        await db.collection("enrollments").add(pendingEnrollment);
 
         console.log(`[Payment] Initiating SSLCommerz session for Course: "${course.title}", Amount: ${amountInBDT} BDT, TranId: ${tranId}`);
 
@@ -87,7 +90,11 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         } else {
             console.error("[Payment] SSLCommerz Initiation Failed:", data);
             // Roll back the pending enrollment since payment initialization failed
-            await db.collection("enrollments").deleteOne({ tranId });
+            const rollbackSnapshot = await db.collection("enrollments").where("tranId", "==", tranId).get();
+            const batch = db.batch();
+            rollbackSnapshot.docs.forEach((doc: any) => batch.delete(doc.ref));
+            await batch.commit();
+
             return res.status(500).json({ message: "Failed to initiate payment with SSLCommerz gateway", details: data });
         }
     } catch (error) {
@@ -117,26 +124,23 @@ export const paymentSuccess = async (req: Request, res: Response) => {
             console.log(`[Payment] Validation Successful for TranId: ${tran_id}`);
 
             // Find the enrollment
-            const enrollment = await db.collection("enrollments").findOne({ tranId: tran_id });
-            if (!enrollment) {
+            const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
+            if (enrollmentSnapshot.empty) {
                 console.error(`[Payment] Success callback: Enrollment not found for TranId ${tran_id}`);
                 return res.redirect(`${WEB_URL}/payment/fail?reason=enrollment_not_found`);
             }
+            const enrollmentDoc = enrollmentSnapshot.docs[0];
+            const enrollment = enrollmentDoc.data();
 
             // Update enrollment status to active
-            await db.collection("enrollments").updateOne(
-                { tranId: tran_id },
-                {
-                    $set: {
-                        status: "active",
-                        paymentStatus: "paid",
-                        cardType: card_type || validationData.card_type,
-                        bankTranId: bank_tran_id || validationData.bank_tran_id,
-                        validationDetails: validationData,
-                        updatedAt: new Date()
-                    }
-                }
-            );
+            await enrollmentDoc.ref.update({
+                status: "active",
+                paymentStatus: "paid",
+                cardType: card_type || validationData.card_type,
+                bankTranId: bank_tran_id || validationData.bank_tran_id,
+                validationDetails: validationData,
+                updatedAt: new Date()
+            });
 
             console.log(`[Payment] Enrollment activated successfully for User: ${enrollment.userId}, Course: ${enrollment.courseId}`);
             // Redirect user to the success page on our web app
@@ -145,16 +149,14 @@ export const paymentSuccess = async (req: Request, res: Response) => {
             console.error(`[Payment] Validation FAILED at SSLCommerz for TranId: ${tran_id}. Details:`, validationData);
 
             // Mark transaction as failed in the DB
-            await db.collection("enrollments").updateOne(
-                { tranId: tran_id },
-                {
-                    $set: {
-                        status: "failed",
-                        paymentStatus: "failed",
-                        updatedAt: new Date()
-                    }
-                }
-            );
+            const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
+            if (!enrollmentSnapshot.empty) {
+                await enrollmentSnapshot.docs[0].ref.update({
+                    status: "failed",
+                    paymentStatus: "failed",
+                    updatedAt: new Date()
+                });
+            }
 
             return res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}&reason=validation_failed`);
         }
@@ -172,17 +174,15 @@ export const paymentFail = async (req: Request, res: Response) => {
         const { tran_id, error } = req.body;
         console.warn(`[Payment] Received FAIL callback for TranId: ${tran_id}, Error: ${error}`);
 
-        await db.collection("enrollments").updateOne(
-            { tranId: tran_id },
-            {
-                $set: {
-                    status: "failed",
-                    paymentStatus: "failed",
-                    failureReason: error,
-                    updatedAt: new Date()
-                }
-            }
-        );
+        const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
+        if (!enrollmentSnapshot.empty) {
+            await enrollmentSnapshot.docs[0].ref.update({
+                status: "failed",
+                paymentStatus: "failed",
+                failureReason: error,
+                updatedAt: new Date()
+            });
+        }
 
         res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}`);
     } catch (err) {
@@ -199,16 +199,14 @@ export const paymentCancel = async (req: Request, res: Response) => {
         const { tran_id } = req.body;
         console.warn(`[Payment] Received CANCEL callback for TranId: ${tran_id}`);
 
-        await db.collection("enrollments").updateOne(
-            { tranId: tran_id },
-            {
-                $set: {
-                    status: "cancelled",
-                    paymentStatus: "cancelled",
-                    updatedAt: new Date()
-                }
-            }
-        );
+        const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
+        if (!enrollmentSnapshot.empty) {
+            await enrollmentSnapshot.docs[0].ref.update({
+                status: "cancelled",
+                paymentStatus: "cancelled",
+                updatedAt: new Date()
+            });
+        }
 
         res.redirect(`${WEB_URL}/payment/cancel`);
     } catch (err) {
@@ -230,22 +228,21 @@ export const paymentIpn = async (req: Request, res: Response) => {
             const validationData = await validateSSLTransaction(val_id as string);
 
             if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
-                const enrollment = await db.collection("enrollments").findOne({ tranId: tran_id });
-                if (enrollment && enrollment.paymentStatus !== "paid") {
-                    await db.collection("enrollments").updateOne(
-                        { tranId: tran_id },
-                        {
-                            $set: {
-                                status: "active",
-                                paymentStatus: "paid",
-                                cardType: card_type,
-                                bankTranId: bank_tran_id,
-                                validationDetails: validationData,
-                                updatedAt: new Date()
-                            }
-                        }
-                    );
-                    console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
+                const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
+                if (!enrollmentSnapshot.empty) {
+                    const doc = enrollmentSnapshot.docs[0];
+                    const enrollment = doc.data();
+                    if (enrollment.paymentStatus !== "paid") {
+                        await doc.ref.update({
+                            status: "active",
+                            paymentStatus: "paid",
+                            cardType: card_type,
+                            bankTranId: bank_tran_id,
+                            validationDetails: validationData,
+                            updatedAt: new Date()
+                        });
+                        console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
+                    }
                 }
             }
         }
@@ -268,10 +265,15 @@ export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: "Course ID is required" });
         }
 
-        const course = await db.collection("courses").findOne({ _id: new ObjectId(courseId as string) });
-        if (!course) {
+        if (req.user?.role === "admin") {
+            return res.status(403).json({ message: "Administrators cannot enroll in courses." });
+        }
+
+        const courseDoc = await db.collection("courses").doc(courseId as string).get();
+        if (!courseDoc.exists) {
             return res.status(404).json({ message: "Course not found" });
         }
+        const course = courseDoc.data()!;
 
         const courseAmount = Number(course.amount) || 0;
         if (courseAmount > 0) {
@@ -279,13 +281,14 @@ export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
         }
 
         // Check if user is already enrolled
-        const existingEnrollment = await db.collection("enrollments").findOne({
-            userId,
-            courseId,
-            paymentStatus: "paid"
-        });
+        const existingEnrollmentSnapshot = await db.collection("enrollments")
+            .where("userId", "==", userId)
+            .where("courseId", "==", courseId)
+            .where("paymentStatus", "==", "paid")
+            .limit(1)
+            .get();
 
-        if (existingEnrollment) {
+        if (!existingEnrollmentSnapshot.empty) {
             return res.status(400).json({ message: "You are already enrolled in this course." });
         }
 
@@ -303,7 +306,7 @@ export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
             updatedAt: new Date()
         };
 
-        await db.collection("enrollments").insertOne(newEnrollment);
+        await db.collection("enrollments").add(newEnrollment);
         console.log(`[Payment] Enrolled in free course: "${course.title}" for User: ${userId}`);
 
         res.json({ message: "Enrolled in free course successfully", tranId });
@@ -324,20 +327,32 @@ export const getEnrolledCourses = async (req: AuthRequest, res: Response) => {
         }
 
         // Find all active/paid enrollments for the user
-        const enrollments = await db.collection("enrollments").find({
-            userId,
-            paymentStatus: "paid"
-        }).toArray();
+        const enrollmentsSnapshot = await db.collection("enrollments")
+            .where("userId", "==", userId)
+            .where("paymentStatus", "==", "paid")
+            .get();
 
-        if (enrollments.length === 0) {
+        if (enrollmentsSnapshot.empty) {
             return res.json([]);
         }
 
         // Map course ids and fetch full details
-        const courseIds = enrollments.map(e => new ObjectId(e.courseId));
-        const courses = await db.collection("courses").find({
-            _id: { $in: courseIds }
-        }).toArray();
+        const courseIds = enrollmentsSnapshot.docs.map((doc: any) => doc.data().courseId);
+        if (courseIds.length === 0) {
+            return res.json([]);
+        }
+
+        // Firestore limits "in" queries to 30 items.
+        // Slice the array if needed (typically user won't have >30 courses).
+        const slicedCourseIds = courseIds.slice(0, 30);
+        const coursesSnapshot = await db.collection("courses")
+            .where(FieldPath.documentId(), "in", slicedCourseIds)
+            .get();
+
+        const courses = coursesSnapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        }));
 
         res.json(courses);
     } catch (error) {

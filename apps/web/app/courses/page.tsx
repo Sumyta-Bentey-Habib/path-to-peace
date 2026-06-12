@@ -8,10 +8,12 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { authClient, getAuthHeaders } from "@/lib/auth-client";
+import { useToast } from "@/components/ui/toast";
 
 export default function CoursesPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const { error, success } = useToast();
   const [courses, setCourses] = useState<any[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ export default function CoursesPage() {
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
-          setEnrolledCourseIds(data.map((c: any) => c._id));
+          setEnrolledCourseIds(data.map((c: any) => c.id || c._id));
         }
       }
     } catch (error) {
@@ -66,7 +68,13 @@ export default function CoursesPage() {
       return;
     }
 
-    const isEnrolled = enrolledCourseIds.includes(course._id);
+    if (session.user.role === "admin") {
+      error("Administrators cannot purchase or enroll in courses.");
+      return;
+    }
+
+    const courseId = course.id || course._id;
+    const isEnrolled = enrolledCourseIds.includes(courseId);
     if (isEnrolled) {
       // Redirect directly to dashboard to study the course
       router.push("/dashboard");
@@ -74,17 +82,17 @@ export default function CoursesPage() {
     }
 
     try {
-      setEnrollingId(course._id);
+      setEnrollingId(courseId);
       const isPaid = Number(course.amount) > 0;
 
       if (isPaid) {
-        console.log(`[Checkout] Initiating SSLCommerz checkout session for Course: ${course._id}`);
+        console.log(`[Checkout] Initiating SSLCommerz checkout session for Course: ${courseId}`);
         // Call backend API to initiate SSLCommerz session
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/payment/initiate`, {
           method: "POST",
           credentials: "include",
           headers: await getAuthHeaders(true),
-          body: JSON.stringify({ courseId: course._id })
+          body: JSON.stringify({ courseId })
         });
 
         const data = await response.json();
@@ -93,30 +101,31 @@ export default function CoursesPage() {
           // Redirect the browser window to SSLCommerz Sandbox payment page
           window.location.href = data.url;
         } else {
-          alert(data.message || "Failed to initiate transaction with payment gateway. Please try again.");
+          error(data.message || "Failed to initiate transaction with payment gateway. Please try again.");
         }
       } else {
-        console.log(`[Enrollment] Enrolling user in free course: ${course._id}`);
+        console.log(`[Enrollment] Enrolling user in free course: ${courseId}`);
         // Call backend free enrollment API
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/courses/enroll-free`, {
           method: "POST",
           credentials: "include",
           headers: await getAuthHeaders(true),
-          body: JSON.stringify({ courseId: course._id })
+          body: JSON.stringify({ courseId })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-          setEnrolledCourseIds(prev => [...prev, course._id]);
+          success("Enrolled in free course successfully!");
+          setEnrolledCourseIds(prev => [...prev, courseId]);
           router.push("/dashboard");
         } else {
-          alert(data.message || "Failed to enroll in course. Please try again.");
+          error(data.message || "Failed to enroll in course. Please try again.");
         }
       }
-    } catch (error) {
-      console.error("[CoursesPage] Enrollment Action Error:", error);
-      alert("An unexpected error occurred during course checkout. Please try again later.");
+    } catch (err) {
+      console.error("[CoursesPage] Enrollment Action Error:", err);
+      error("An unexpected error occurred during course checkout. Please try again later.");
     } finally {
       setEnrollingId(null);
     }
@@ -151,12 +160,14 @@ export default function CoursesPage() {
           ) : courses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course) => {
-                const isEnrolled = enrolledCourseIds.includes(course._id);
-                const isEnrolling = enrollingId === course._id;
+                const currentCourseId = course.id || course._id;
+                const isEnrolled = enrolledCourseIds.includes(currentCourseId);
+                const isEnrolling = enrollingId === currentCourseId;
                 const isPaid = Number(course.amount) > 0;
+                const isAdmin = session?.user?.role === "admin";
 
                 return (
-                  <div key={course._id} className="group bg-surface-container-low border border-outline-variant/30 rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-2">
+                  <div key={currentCourseId} className="group bg-surface-container-low border border-outline-variant/30 rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-2">
                     <div className="p-8 space-y-6">
                       <div className="flex justify-between items-start">
                         <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors duration-500">
@@ -189,12 +200,14 @@ export default function CoursesPage() {
 
                       <Button 
                         onClick={() => handleEnroll(course)}
-                        disabled={isEnrolling}
+                        disabled={isEnrolling || (isAdmin && !isEnrolled)}
                         className={cn(
                           "w-full rounded-2xl py-6 font-bold flex items-center justify-between group/btn cursor-pointer transition-colors duration-300",
                           isEnrolled
                             ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            : "bg-primary text-on-primary hover:bg-primary/90"
+                            : isAdmin
+                              ? "bg-gray-300 hover:bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-200"
+                              : "bg-primary text-on-primary hover:bg-primary/90"
                         )}
                       >
                         {isEnrolling ? (
@@ -206,6 +219,11 @@ export default function CoursesPage() {
                           <>
                             <span>Access Course</span>
                             <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                          </>
+                        ) : isAdmin ? (
+                          <>
+                            <span>Admin - No Purchase</span>
+                            <ChevronRight size={18} />
                           </>
                         ) : (
                           <>

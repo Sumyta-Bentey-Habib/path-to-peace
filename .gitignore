@@ -42,4 +42,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local cache and logs
+.npm-cache/
+
+# firebase credentials
+service-account.json
+service.json
+
+
 

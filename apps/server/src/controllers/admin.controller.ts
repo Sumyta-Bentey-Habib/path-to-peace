@@ -1,20 +1,16 @@
 import { Request, Response } from "express";
-import { db } from "../db/mongo.js";
-import { ObjectId } from "mongodb";
-import fs from "fs";
-import path from "path";
-
-
+import { db } from "../db/firestore.js";
 
 /**
  * Fetch all users in the system.
  */
 export const getUsers = async (req: Request, res: Response) => {
     try {
-        const users = await db.collection("users").find({}).toArray();
-        const mappedUsers = users.map(user => ({
-            ...user,
-            id: user._id.toString()
+        const snapshot = await db.collection("users").get();
+        const mappedUsers = snapshot.docs.map((doc: any) => ({
+            ...doc.data() as any,
+            id: doc.id,
+            _id: doc.id
         }));
         res.json(mappedUsers);
     } catch (error) {
@@ -28,24 +24,23 @@ export const getUsers = async (req: Request, res: Response) => {
  */
 export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     const updateData = { ...req.body };
-    delete updateData._id; // Ensure we don't try to update the immutable ID field
+    delete updateData._id; // Ensure we don't try to update immutable fields
+    delete updateData.id;
 
     try {
-        const result = await db.collection("users").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
-
-        if (result.matchedCount === 0) {
+        const docRef = db.collection("users").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({ message: "User updated successfully", result });
+        await docRef.update(updateData);
+        res.json({ message: "User updated successfully" });
     } catch (error) {
         console.error("Failed to update user:", error);
         res.status(500).json({ message: "Failed to update user" });
@@ -57,45 +52,52 @@ export const updateUser = async (req: Request, res: Response) => {
  */
 export const deleteUser = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     try {
-        const userObjectId = new ObjectId(id);
-
-        // Pre-check if user exists
-        const user = await db.collection("users").findOne({ _id: userObjectId });
-        if (!user) {
+        const userDocRef = db.collection("users").doc(id);
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Cascade delete all user-related data to ensure DB integrity
-        const [userResult, accountsResult, sessionsResult, enrollmentsResult, savedItemsResult] = await Promise.all([
-            db.collection("users").deleteOne({ _id: userObjectId }),
-            db.collection("accounts").deleteMany({ userId: userObjectId }),
-            db.collection("sessions").deleteMany({ userId: userObjectId }),
-            db.collection("enrollments").deleteMany({ userId: id }),
-            db.collection("saved_items").deleteMany({ userId: id })
-        ]);
+        // Cascade delete all user-related data in a batch
+        const batch = db.batch();
+        batch.delete(userDocRef);
+
+        const collections = ["accounts", "sessions", "enrollments", "saved_items"];
+        const deletedCounts = {
+            userDeleted: 1,
+            accountsDeleted: 0,
+            sessionsDeleted: 0,
+            enrollmentsDeleted: 0,
+            savedItemsDeleted: 0
+        };
+
+        for (const col of collections) {
+            const snap = await db.collection(col).where("userId", "==", id).get();
+            snap.docs.forEach((doc: any) => {
+                batch.delete(doc.ref);
+            });
+            if (col === "accounts") deletedCounts.accountsDeleted = snap.size;
+            if (col === "sessions") deletedCounts.sessionsDeleted = snap.size;
+            if (col === "enrollments") deletedCounts.enrollmentsDeleted = snap.size;
+            if (col === "saved_items") deletedCounts.savedItemsDeleted = snap.size;
+        }
+
+        await batch.commit();
 
         res.json({
             message: "User and all associated data deleted successfully",
-            result: userResult,
-            details: {
-                userDeleted: userResult.deletedCount,
-                accountsDeleted: accountsResult.deletedCount,
-                sessionsDeleted: sessionsResult.deletedCount,
-                enrollmentsDeleted: enrollmentsResult.deletedCount,
-                savedItemsDeleted: savedItemsResult.deletedCount
-            }
+            details: deletedCounts
         });
     } catch (error) {
         console.error("Failed to delete user:", error);
         res.status(500).json({ message: "Failed to delete user" });
     }
 };
-
 
 // --- Courses ---
 
@@ -104,7 +106,12 @@ export const deleteUser = async (req: Request, res: Response) => {
  */
 export const getCourses = async (req: Request, res: Response) => {
     try {
-        const courses = await db.collection("courses").find({}).toArray();
+        const snapshot = await db.collection("courses").get();
+        const courses = snapshot.docs.map((doc: any) => ({
+            ...doc.data() as any,
+            id: doc.id,
+            _id: doc.id
+        }));
         res.json(courses);
     } catch (error) {
         console.error("Failed to fetch courses:", error);
@@ -134,9 +141,10 @@ export const createCourse = async (req: Request, res: Response) => {
             updatedAt: new Date()
         };
         delete courseData._id;
+        delete courseData.id;
 
-        const result = await db.collection("courses").insertOne(courseData);
-        res.status(201).json({ message: "Course created successfully", result });
+        const docRef = await db.collection("courses").add(courseData);
+        res.status(201).json({ message: "Course created successfully", id: docRef.id, _id: docRef.id });
     } catch (error) {
         console.error("Failed to create course:", error);
         res.status(500).json({ message: "Failed to create course" });
@@ -148,12 +156,13 @@ export const createCourse = async (req: Request, res: Response) => {
  */
 export const updateCourse = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     const updateData = { ...req.body };
-    delete updateData._id; // Prevent updating immutable MongoDB ID
+    delete updateData._id;
+    delete updateData.id;
 
     if (updateData.amount !== undefined) {
         const parsedAmount = Number(updateData.amount);
@@ -164,16 +173,14 @@ export const updateCourse = async (req: Request, res: Response) => {
     }
 
     try {
-        const result = await db.collection("courses").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
-
-        if (result.matchedCount === 0) {
+        const docRef = db.collection("courses").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        res.json({ message: "Course updated successfully", result });
+        await docRef.update(updateData);
+        res.json({ message: "Course updated successfully" });
     } catch (error) {
         console.error("Failed to update course:", error);
         res.status(500).json({ message: "Failed to update course" });
@@ -185,16 +192,19 @@ export const updateCourse = async (req: Request, res: Response) => {
  */
 export const deleteCourse = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     try {
-        const result = await db.collection("courses").deleteOne({ _id: new ObjectId(id) });
-        if (result.deletedCount === 0) {
+        const docRef = db.collection("courses").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Course not found" });
         }
-        res.json({ message: "Course deleted successfully", result });
+
+        await docRef.delete();
+        res.json({ message: "Course deleted successfully" });
     } catch (error) {
         console.error("Failed to delete course:", error);
         res.status(500).json({ message: "Failed to delete course" });
@@ -208,7 +218,12 @@ export const deleteCourse = async (req: Request, res: Response) => {
  */
 export const getDuas = async (req: Request, res: Response) => {
     try {
-        const duas = await db.collection("duas").find({}).toArray();
+        const snapshot = await db.collection("duas").get();
+        const duas = snapshot.docs.map((doc: any) => ({
+            ...doc.data() as any,
+            id: doc.id,
+            _id: doc.id
+        }));
         res.json(duas);
     } catch (error) {
         console.error("Failed to fetch duas:", error);
@@ -232,9 +247,10 @@ export const createDua = async (req: Request, res: Response) => {
             updatedAt: new Date()
         };
         delete duaData._id;
+        delete duaData.id;
 
-        const result = await db.collection("duas").insertOne(duaData);
-        res.status(201).json({ message: "Dua created successfully", result });
+        const docRef = await db.collection("duas").add(duaData);
+        res.status(201).json({ message: "Dua created successfully", id: docRef.id, _id: docRef.id });
     } catch (error) {
         console.error("Failed to create dua:", error);
         res.status(500).json({ message: "Failed to create dua" });
@@ -246,24 +262,23 @@ export const createDua = async (req: Request, res: Response) => {
  */
 export const updateDua = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     const updateData = { ...req.body };
-    delete updateData._id; // Prevent updating immutable MongoDB ID
+    delete updateData._id;
+    delete updateData.id;
 
     try {
-        const result = await db.collection("duas").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
-
-        if (result.matchedCount === 0) {
+        const docRef = db.collection("duas").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Dua not found" });
         }
 
-        res.json({ message: "Dua updated successfully", result });
+        await docRef.update(updateData);
+        res.json({ message: "Dua updated successfully" });
     } catch (error) {
         console.error("Failed to update dua:", error);
         res.status(500).json({ message: "Failed to update dua" });
@@ -275,16 +290,19 @@ export const updateDua = async (req: Request, res: Response) => {
  */
 export const deleteDua = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     try {
-        const result = await db.collection("duas").deleteOne({ _id: new ObjectId(id) });
-        if (result.deletedCount === 0) {
+        const docRef = db.collection("duas").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Dua not found" });
         }
-        res.json({ message: "Dua deleted successfully", result });
+
+        await docRef.delete();
+        res.json({ message: "Dua deleted successfully" });
     } catch (error) {
         console.error("Failed to delete dua:", error);
         res.status(500).json({ message: "Failed to delete dua" });
@@ -298,7 +316,12 @@ export const deleteDua = async (req: Request, res: Response) => {
  */
 export const getFeelings = async (req: Request, res: Response) => {
     try {
-        const feelings = await db.collection("feelings").find({}).toArray();
+        const snapshot = await db.collection("feelings").get();
+        const feelings = snapshot.docs.map((doc: any) => ({
+            ...doc.data() as any,
+            id: doc.id,
+            _id: doc.id
+        }));
         res.json(feelings);
     } catch (error) {
         console.error("Failed to fetch feelings:", error);
@@ -325,9 +348,10 @@ export const createFeeling = async (req: Request, res: Response) => {
             updatedAt: new Date()
         };
         delete feelingData._id;
+        delete feelingData.id;
 
-        const result = await db.collection("feelings").insertOne(feelingData);
-        res.status(201).json({ message: "Feeling created successfully", result });
+        const docRef = await db.collection("feelings").add(feelingData);
+        res.status(201).json({ message: "Feeling created successfully", id: docRef.id, _id: docRef.id });
     } catch (error) {
         console.error("Failed to create feeling:", error);
         res.status(500).json({ message: "Failed to create feeling" });
@@ -339,24 +363,23 @@ export const createFeeling = async (req: Request, res: Response) => {
  */
 export const updateFeeling = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     const updateData = { ...req.body };
     delete updateData._id;
+    delete updateData.id;
 
     try {
-        const result = await db.collection("feelings").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
-
-        if (result.matchedCount === 0) {
+        const docRef = db.collection("feelings").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Feeling not found" });
         }
 
-        res.json({ message: "Feeling updated successfully", result });
+        await docRef.update(updateData);
+        res.json({ message: "Feeling updated successfully" });
     } catch (error) {
         console.error("Failed to update feeling:", error);
         res.status(500).json({ message: "Failed to update feeling" });
@@ -368,16 +391,19 @@ export const updateFeeling = async (req: Request, res: Response) => {
  */
 export const deleteFeeling = async (req: Request, res: Response) => {
     const { id } = req.params;
-    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+    if (typeof id !== "string" || id.trim() === "") {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
     try {
-        const result = await db.collection("feelings").deleteOne({ _id: new ObjectId(id) });
-        if (result.deletedCount === 0) {
+        const docRef = db.collection("feelings").doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Feeling not found" });
         }
-        res.json({ message: "Feeling deleted successfully", result });
+
+        await docRef.delete();
+        res.json({ message: "Feeling deleted successfully" });
     } catch (error) {
         console.error("Failed to delete feeling:", error);
         res.status(500).json({ message: "Failed to delete feeling" });
@@ -391,17 +417,17 @@ export const deleteFeeling = async (req: Request, res: Response) => {
  */
 export const getStats = async (req: Request, res: Response) => {
     try {
-        const [users, courses, duas, feelings] = await Promise.all([
-            db.collection("users").countDocuments(),
-            db.collection("courses").countDocuments(),
-            db.collection("duas").countDocuments(),
-            db.collection("feelings").countDocuments(),
+        const [usersSnap, coursesSnap, duasSnap, feelingsSnap] = await Promise.all([
+            db.collection("users").count().get(),
+            db.collection("courses").count().get(),
+            db.collection("duas").count().get(),
+            db.collection("feelings").count().get(),
         ]);
         res.json({
-            users,
-            courses,
-            duas,
-            feelings
+            users: usersSnap.data().count,
+            courses: coursesSnap.data().count,
+            duas: duasSnap.data().count,
+            feelings: feelingsSnap.data().count
         });
     } catch (error) {
         console.error("Failed to fetch stats:", error);

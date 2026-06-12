@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   description: "A digital experience that breathes. Explore spiritual wisdom through a meditative editorial journey.",
 };
 
+import { ToastProvider } from "@/components/ui/toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,7 +37,11 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", notoSerif.variable, plusJakarta.variable, notoArabic.variable)}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </body>
     </html>
   );
 }

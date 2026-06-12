@@ -6,6 +6,34 @@ import { cn } from "@/lib/utils";
 import { authClient, getAuthHeaders } from "@/lib/auth-client";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
+const formatDate = (dateVal: any) => {
+  if (!dateVal) return "N/A";
+  let dateObj: Date;
+
+  if (typeof dateVal === "string" || typeof dateVal === "number") {
+    dateObj = new Date(dateVal);
+  } else if (typeof dateVal === "object") {
+    const seconds = dateVal.seconds ?? dateVal._seconds;
+    if (typeof seconds === "number") {
+      dateObj = new Date(seconds * 1000);
+    } else {
+      dateObj = new Date(dateVal);
+    }
+  } else {
+    return "N/A";
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    return "N/A";
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(dateObj);
+};
+
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,11 +167,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm font-medium text-primary">
-                      {user.createdAt ? new Intl.DateTimeFormat('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      }).format(new Date(user.createdAt)) : "N/A"}
+                      {formatDate(user.createdAt)}
                     </p>
                   </td>
                   <td className="px-6 py-4">

@@ -6,7 +6,7 @@ import { fromNodeHeaders } from "better-auth/node";
  * Extended Express Request to include Better Auth session and user data.
  */
 export interface AuthRequest extends Request {
-    user?: typeof auth.$Infer.Session.user;
+    user?: typeof auth.$Infer.Session.user & { role?: string | null };
     session?: typeof auth.$Infer.Session.session;
 }
 
@@ -22,7 +22,7 @@ const getAuthSession = async (req: Request) => {
 /**
  * Middleware: Requires a valid user session.
  * Attaches user and session data to the request object.
- */
+ */ 
 export const authMiddleware = async (
     req: AuthRequest,
     res: Response,
@@ -61,8 +61,8 @@ export const adminMiddleware = async (
             return res.status(401).json({ message: "Unauthorized: No active session found" });
         }
 
-        if (session.user.role !== "admin") {
-            console.warn(`Admin Access Denied: User ${session.user.email} with role '${session.user.role}' attempted to access admin routes.`);
+        if ((session.user as any).role !== "admin") {
+            console.warn(`Admin Access Denied: User ${session.user.email} with role '${(session.user as any).role}' attempted to access admin routes.`);
             return res.status(403).json({ message: "Forbidden: Administrator privileges required" });
         }
 

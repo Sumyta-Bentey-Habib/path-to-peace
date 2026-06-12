@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { 
     LayoutDashboard, 
     User, 
@@ -26,6 +27,12 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const { data: session, isPending } = authClient.useSession();
 
+    useEffect(() => {
+        if (!isPending && !session) {
+            router.push("/login");
+        }
+    }, [session, isPending, router]);
+
     const handleSignOut = async () => {
         await authClient.signOut();
         router.push("/login");
@@ -40,7 +47,6 @@ export default function DashboardLayout({
     }
 
     if (!session) {
-        router.push("/login");
         return null;
     }
 

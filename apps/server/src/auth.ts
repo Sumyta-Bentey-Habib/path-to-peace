@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { betterAuth } from "better-auth";
-import { mongodbAdapter } from "better-auth/adapters/mongodb";
-import { db } from "./db/mongo.js";
+import { firestoreAdapter } from "better-auth-firestore";
+import { db } from "./db/firestore.js";
 import { admin, bearer } from "better-auth/plugins";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -13,7 +13,9 @@ if (!process.env.BETTER_AUTH_SECRET) {
 
 export const auth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
-    database: mongodbAdapter(db),
+    database: firestoreAdapter({
+        firestore: db
+    }),
     user: {
         modelName: "users"
     },

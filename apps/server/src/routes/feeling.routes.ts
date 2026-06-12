@@ -1,15 +1,18 @@
 import { Router } from "express";
-import { db } from "../db/mongo.js";
+import { db } from "../db/firestore.js";
 
 const router = Router();
 
 router.get("/duas", async (req, res) => {
     try {
-        const duas = await db.collection("duas").find({}).toArray();
-        const mappedDuas = duas.map(d => ({
-            ...d,
-            id: d.id || d._id.toString()
-        }));
+        const snapshot = await db.collection("duas").get();
+        const mappedDuas = snapshot.docs.map((doc: any) => {
+            const d = doc.data();
+            return {
+                ...d,
+                id: doc.id
+            };
+        });
         res.json(mappedDuas);
     } catch (error) {
         console.error("Failed to fetch public duas:", error);
