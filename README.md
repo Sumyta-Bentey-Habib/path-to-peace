@@ -2,7 +2,7 @@
 
 **Path to Peace** is a digital sanctuary designed as a "Meditative Editorial." It offers a serene, premium experience for spiritual seekers, blending modern design aesthetics (glassmorphism, subtle micro-animations, and balanced typography) with classical wisdom.
 
-The project is structured as a robust **pnpm-workspace monorepo** consisting of a fast, modern **Next.js frontend** and a high-performance **Express.js API server** backed by **MongoDB**, secured with **Better Auth**, and integrated with the **SSLCommerz** payment gateway.
+The project is structured as a robust **pnpm-workspace monorepo** consisting of a fast, modern **Next.js frontend** and a high-performance **Express.js API server** backed by **Cloud Firestore**, secured with **Better Auth (Firestore Adapter)**, and integrated with the **SSLCommerz** payment gateway.
 
 ---
 
@@ -38,7 +38,7 @@ The system adheres to a premium design system tailored for tranquility:
 *   **SSLCommerz Gateway Integration:** Direct integration with Bangladesh's premier payment gateway supporting automatic checkouts and robust transactions.
 
 ### 🛡️ Secure Full-Stack Authentication
-*   Fully powered by **Better Auth** with MongoDB adapters.
+*   Fully powered by **Better Auth** using the official Firestore adapter (`better-auth-firestore`).
 *   Secure role-based access control (**Admin** vs **User** roles) enforced both client-side via React hooks and server-side via custom Express middleware.
 
 ### 📊 Administrative Management Suite (CRUD)
@@ -53,11 +53,11 @@ The system adheres to a premium design system tailored for tranquility:
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Monorepo Orchestrator** | `pnpm` workspaces, Turborepo (optional) |
+| **Monorepo Orchestrator** | `pnpm` workspaces |
 | **Frontend Application** | Next.js 16 (App Router), Tailwind CSS v4, React 19, shadcn/ui, Radix UI, Base UI, Lucide Icons |
 | **Backend API Server** | Node.js, Express.js (v5), TypeScript, `tsup` (bundler), `tsx` (TS dev runtime) |
-| **Database** | MongoDB (Official Client Driver) |
-| **Authentication** | Better Auth (Client & Express Node Handlers) |
+| **Database** | Cloud Firestore (via `firebase-admin`) |
+| **Authentication** | Better Auth (Client & Express Node Handlers with `better-auth-firestore` adapter) |
 | **Payments** | SSLCommerz API Gateway Integration |
 
 ---
@@ -70,12 +70,13 @@ path-to-peace/
 │   ├── server/                     # Express.js REST API Server
 │   │   ├── src/
 │   │   │   ├── controllers/        # Business logic controllers (admin, course, payment, saved-items, user)
-│   │   │   ├── db/                 # MongoDB connection and database seeding scripts
+│   │   │   ├── db/                 # Firestore connection and database seeding scripts
 │   │   │   ├── middleware/         # Session validation & admin authentication middleware
 │   │   │   ├── routes/             # Grouped API route mounts (user, admin, course, payments, saved items)
 │   │   │   ├── utils/              # SSLCommerz client utility & third-party connectors
-│   │   │   ├── auth.ts             # Better Auth server configuration
-│   │   │   └── index.ts            # Main API entry point (Express initialization)
+│   │   │   ├── auth.ts             # Better Auth server configuration with Firestore adapter
+│   │   │   ├── check-db.ts         # Diagnostic script for checking Firestore collections
+│   │   │   └── index.ts            # Main API entry point (Express initialization & Firestore ping)
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -102,7 +103,10 @@ To run the application locally, you must configure environment variables for bot
 Create a `.env` file inside `apps/server/` matching the template below:
 ```env
 PORT=3001
-MONGODB_URI=your_mongodb_connection_string
+# Firebase Firestore configuration
+FIREBASE_PROJECT_ID=path-to-peace-4cacd
+FIREBASE_SERVICE_ACCOUNT=service-account.json
+
 BETTER_AUTH_SECRET=your_better_auth_secret_key
 BETTER_AUTH_URL=http://localhost:3001
 
@@ -116,6 +120,8 @@ SSL_VALIDATION_API=https://sandbox.sslcommerz.com/validator/api/validationserver
 # Frontend Web Origin
 NEXT_PUBLIC_WEB_URL=http://localhost:3000
 ```
+
+Make sure to place your service account credentials file (e.g., `service-account.json`) in the `apps/server/` directory and configure the path in the `.env` file.
 
 ### 2. Frontend Application Setup (`apps/web/.env.local`)
 Create a `.env.local` file inside `apps/web/` matching the template below:
@@ -142,11 +148,24 @@ Make sure you have [Node.js (v18+)](https://nodejs.org/) and [pnpm](https://pnpm
    pnpm install
    ```
 
+### Database & Firestore Connectivity Setup
+Before running the application:
+1. Ensure your Firebase project is created.
+2. In the Firebase console, go to **Project settings > Service accounts**, select **Generate new private key**, and download it.
+3. Save the downloaded JSON file as `service-account.json` inside `apps/server/`.
+4. Run a connection test to verify access to Firestore:
+   ```bash
+   cd apps/server
+   npx tsx src/check-db.ts
+   ```
+
 ### Database Seeding
 The backend contains an automated database seeder (`apps/server/src/db/seed.ts`). Upon first startup:
-* It reads initial Duas and Feeling-Tool configurations from the frontend's static data sets (`apps/web/lib/data`).
-* It inserts them into MongoDB collections automatically.
-* It initializes a default active course to prevent empty listings.
+* It connects to Firestore and checks if collections are empty.
+* If empty, it seeds initial Duas from the frontend's static data sets (`apps/web/lib/data/duas.json`).
+* It inserts default feelings, a default active course, and default accounts:
+  * **Admin Account:** `admin@pathtopeace.com` (Password: `AdminPassword123`)
+  * **Regular User Account:** `user@pathtopeace.com` (Password: `UserPassword123`)
 
 ### Running in Development
 The monorepo contains dedicated scripts in the root `package.json` to orchestrate tasks. We recommend running the server and web application in two separate terminals:
@@ -165,18 +184,21 @@ The monorepo contains dedicated scripts in the root `package.json` to orchestrat
 
 ---
 
-## 🔐 Administrative Account Setup
+## 🔐 Administrative & Demo User Accounts
 
-Since the dashboard enforces strict role-based authorization, you will need an administrative account to access `http://localhost:3000/admin`.
+The database seeder automatically creates pre-configured demo users on startup. You can log in using:
 
-1. Run both applications and go to the web app (`http://localhost:3000`).
-2. Register a new account via the standard registration form (`/sign-up`).
-3. While logged in, trigger the promotional utility endpoint to set your user role as an admin:
-   ```
-   GET http://localhost:3001/api/admin/set-me-as-admin
-   ```
-   *(Ensure cookies/credentials are forwarded, or invoke the route directly while authenticated)*.
-4. Your account is now upgraded to `admin`. You can navigate to `/admin` to manage the sanctuary!
+1. **Administrator Portal:**
+   * **URL:** `http://localhost:3000/admin`
+   * **Email:** `admin@pathtopeace.com`
+   * **Password:** `AdminPassword123`
+
+2. **Standard User Sanctuary:**
+   * **URL:** `http://localhost:3000/dashboard`
+   * **Email:** `user@pathtopeace.com`
+   * **Password:** `UserPassword123`
+
+*Note: If you sign up a new account manually via `/sign-up`, you can upgrade it to admin by visiting `http://localhost:3001/api/admin/set-me-as-admin` while authenticated.*
 
 ---
 
@@ -194,7 +216,7 @@ sequenceDiagram
 
     Seeker->>Web: Selects a Course & Clicks Enroll
     Web->>Server: POST /api/payment/initiate (Headers: Auth Token, Body: courseId)
-    Note over Server: Server creates a unique transaction ID (tran_id),<br/>saves pending payment status in MongoDB.
+    Note over Server: Server creates a unique transaction ID (tran_id),<br/>saves pending payment status in Firestore.
     Server->>SSL: Initiates SSLCommerz session
     SSL-->>Server: Returns gateway Payment Gateway URL
     Server-->>Web: Responds with Payment Redirect URL
