@@ -2,6 +2,9 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+allowBuilds:
+  protobufjs: false
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

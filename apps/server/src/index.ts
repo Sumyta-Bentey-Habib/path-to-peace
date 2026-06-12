@@ -34,10 +34,15 @@ app.use("/api", apiRoutes);
 app.listen(port, async () => {
     console.log(`Server running at http://localhost:${port}`);
     try {
-        const { client } = await import("./db/mongo.js");
-        await client.db("admin").command({ ping: 1 });
-        console.log("MongoDB connection: SUCCESSFUL (Pinged)");
+        const { db } = await import("./db/firestore.js");
+        // Perform a simple read to verify Firestore connection
+        await db.collection("health").limit(1).get();
+        console.log("Firestore connection: SUCCESSFUL (Pinged)");
+
+        // Run database seeder
+        const { seedDatabase } = await import("./db/seed.js");
+        await seedDatabase();
     } catch (error) {
-        console.error("MongoDB connection: FAILED", error);
+        console.error("Firestore connection: FAILED", error);
     }
 });

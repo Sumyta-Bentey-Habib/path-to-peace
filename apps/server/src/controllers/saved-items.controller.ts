@@ -1,7 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware.js";
-import { db } from "../db/mongo.js";
-import { ObjectId } from "mongodb";
+import { db } from "../db/firestore.js";
 
 export const getSavedItems = async (req: AuthRequest, res: Response) => {
     try {
@@ -10,13 +9,17 @@ export const getSavedItems = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const query: any = { userId };
+        let queryRef: any = db.collection("saved_items").where("userId", "==", userId);
         const { type } = req.query;
         if (type) {
-            query.type = type;
+            queryRef = queryRef.where("type", "==", type);
         }
 
-        const items = await db.collection("saved_items").find(query).toArray();
+        const snapshot = await queryRef.get();
+        const items = snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         res.json(items);
     } catch (error) {
         res.status(500).json({ message: "Failed to fetch saved items", error });
@@ -42,14 +45,19 @@ export const addSavedItem = async (req: AuthRequest, res: Response) => {
         }
 
         // Check if item already exists
-        const existing = await db.collection("saved_items").findOne({
-            userId,
-            type,
-            itemId: parsedItemId
-        });
+        const existingSnapshot = await db.collection("saved_items")
+            .where("userId", "==", userId)
+            .where("type", "==", type)
+            .where("itemId", "==", parsedItemId)
+            .limit(1)
+            .get();
 
-        if (existing) {
-            return res.status(200).json(existing);
+        if (!existingSnapshot.empty) {
+            const doc = existingSnapshot.docs[0];
+            return res.status(200).json({
+                id: doc.id,
+                ...doc.data()
+            });
         }
 
         const newItem = {
@@ -60,10 +68,10 @@ export const addSavedItem = async (req: AuthRequest, res: Response) => {
             createdAt: new Date()
         };
 
-        const result = await db.collection("saved_items").insertOne(newItem);
+        const docRef = await db.collection("saved_items").add(newItem);
         res.status(201).json({
             message: "Item saved successfully",
-            _id: result.insertedId,
+            id: docRef.id,
             ...newItem
         });
     } catch (error) {
@@ -83,16 +91,18 @@ export const deleteSavedItemById = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: "Missing item ID" });
         }
 
-        const result = await db.collection("saved_items").deleteOne({
-            _id: new ObjectId(id as string),
-            userId
-        });
-
-        if (result.deletedCount === 0) {
+        const docRef = db.collection("saved_items").doc(id as string);
+        const doc = await docRef.get();
+        if (!doc.exists) {
             return res.status(404).json({ message: "Item not found or unauthorized to delete" });
         }
 
-        res.json({ message: "Item deleted successfully", result });
+        if (doc.data()?.userId !== userId) {
+            return res.status(403).json({ message: "Unauthorized to delete this item" });
+        }
+
+        await docRef.delete();
+        res.json({ message: "Item deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Failed to delete item", error });
     }
@@ -118,17 +128,23 @@ export const deleteSavedItemByItem = async (req: AuthRequest, res: Response) => 
             parsedItemId = Number(itemIdStr);
         }
 
-        const result = await db.collection("saved_items").deleteOne({
-            userId,
-            type,
-            itemId: parsedItemId
-        });
+        const snapshot = await db.collection("saved_items")
+            .where("userId", "==", userId)
+            .where("type", "==", type)
+            .where("itemId", "==", parsedItemId)
+            .get();
 
-        if (result.deletedCount === 0) {
+        if (snapshot.empty) {
             return res.status(404).json({ message: "Item not found" });
         }
 
-        res.json({ message: "Item deleted successfully", result });
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        res.json({ message: "Item deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Failed to delete item", error });
     }

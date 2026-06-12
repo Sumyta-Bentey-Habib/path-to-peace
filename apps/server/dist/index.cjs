@@ -1,28 +1,277 @@
-import {
-  auth
-} from "./chunk-DX3LSIDW.js";
-import {
-  db
-} from "./chunk-T2572XFA.js";
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// src/db/firestore.ts
+var firestore_exports = {};
+__export(firestore_exports, {
+  db: () => db
+});
+var import_firebase_admin, import_dotenv, import_fs, import_path, db;
+var init_firestore = __esm({
+  "src/db/firestore.ts"() {
+    "use strict";
+    import_firebase_admin = __toESM(require("firebase-admin"), 1);
+    import_dotenv = __toESM(require("dotenv"), 1);
+    import_fs = __toESM(require("fs"), 1);
+    import_path = __toESM(require("path"), 1);
+    import_dotenv.default.config();
+    if (import_firebase_admin.default.apps.length === 0) {
+      const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT;
+      const projectId = process.env.FIREBASE_PROJECT_ID || "path-to-peace-4cacd";
+      if (serviceAccountPath && import_fs.default.existsSync(serviceAccountPath)) {
+        console.log(`[Firebase] Initializing with service account from: ${serviceAccountPath}`);
+        const serviceAccount = JSON.parse(import_fs.default.readFileSync(import_path.default.resolve(serviceAccountPath), "utf8"));
+        import_firebase_admin.default.initializeApp({
+          credential: import_firebase_admin.default.credential.cert(serviceAccount),
+          projectId
+        });
+      } else {
+        console.log(`[Firebase] Initializing default application (Emulator or Default Credentials) for project: ${projectId}`);
+        import_firebase_admin.default.initializeApp({
+          projectId
+        });
+      }
+    }
+    db = import_firebase_admin.default.firestore();
+    db.settings({ ignoreUndefinedProperties: true });
+  }
+});
+
+// src/auth.ts
+var auth_exports = {};
+__export(auth_exports, {
+  auth: () => auth
+});
+var import_dotenv2, import_better_auth, import_better_auth_firestore, import_plugins, auth;
+var init_auth = __esm({
+  "src/auth.ts"() {
+    "use strict";
+    import_dotenv2 = __toESM(require("dotenv"), 1);
+    import_better_auth = require("better-auth");
+    import_better_auth_firestore = require("better-auth-firestore");
+    init_firestore();
+    import_plugins = require("better-auth/plugins");
+    import_dotenv2.default.config();
+    if (!process.env.BETTER_AUTH_SECRET) {
+      throw new Error("BETTER_AUTH_SECRET is not defined in .env file");
+    }
+    auth = (0, import_better_auth.betterAuth)({
+      secret: process.env.BETTER_AUTH_SECRET,
+      database: (0, import_better_auth_firestore.firestoreAdapter)({
+        firestore: db
+      }),
+      user: {
+        modelName: "users"
+      },
+      session: {
+        modelName: "sessions"
+      },
+      account: {
+        modelName: "accounts"
+      },
+      verification: {
+        modelName: "verifications"
+      },
+      plugins: [
+        (0, import_plugins.admin)(),
+        (0, import_plugins.bearer)()
+      ],
+      emailAndPassword: {
+        enabled: true
+      },
+      trustedOrigins: ["http://localhost:3000"]
+    });
+  }
+});
+
+// src/db/seed.ts
+var seed_exports = {};
+__export(seed_exports, {
+  seedDatabase: () => seedDatabase
+});
+var import_fs2, import_path2, import_url, import_meta, seedDatabase;
+var init_seed = __esm({
+  "src/db/seed.ts"() {
+    "use strict";
+    init_firestore();
+    import_fs2 = __toESM(require("fs"), 1);
+    import_path2 = __toESM(require("path"), 1);
+    import_url = require("url");
+    import_meta = {};
+    seedDatabase = async () => {
+      try {
+        console.log("[Seeder] Starting database seeding...");
+        const __filename = (0, import_url.fileURLToPath)(import_meta.url);
+        const __dirname = import_path2.default.dirname(__filename);
+        const webLibPath = import_path2.default.resolve(__dirname, "../../../web/lib/data");
+        const duasPath = import_path2.default.join(webLibPath, "duas.json");
+        const chunkArray = (array, size) => {
+          const chunked = [];
+          for (let i = 0; i < array.length; i += size) {
+            chunked.push(array.slice(i, i + size));
+          }
+          return chunked;
+        };
+        const duasSnapshot = await db.collection("duas").limit(1).get();
+        if (duasSnapshot.empty && import_fs2.default.existsSync(duasPath)) {
+          console.log("[Seeder] Seeding Duas...");
+          const duasData = JSON.parse(import_fs2.default.readFileSync(duasPath, "utf-8"));
+          if (duasData.duas && duasData.duas.length > 0) {
+            const chunks = chunkArray(duasData.duas, 400);
+            for (const chunk of chunks) {
+              const batch = db.batch();
+              chunk.forEach((dua) => {
+                const docRef = db.collection("duas").doc();
+                batch.set(docRef, {
+                  ...dua,
+                  createdAt: /* @__PURE__ */ new Date(),
+                  updatedAt: /* @__PURE__ */ new Date()
+                });
+              });
+              await batch.commit();
+            }
+            console.log("[Seeder] Seeded Duas successfully");
+          }
+        } else {
+          console.log("[Seeder] Duas collection is not empty or JSON file missing, skipping.");
+        }
+        const feelingsSnapshot = await db.collection("feelings").limit(1).get();
+        if (feelingsSnapshot.empty) {
+          console.log("[Seeder] Seeding default feelings...");
+          const defaultFeelings = [
+            { label: "Sad", icon: "Frown", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+            { label: "Anxious", icon: "AlertCircle", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+            { label: "Stressed", icon: "Zap", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+            { label: "Grateful", icon: "Heart", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+            { label: "Angry", icon: "Flame", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() },
+            { label: "Weak", icon: "Activity", createdAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }
+          ];
+          const batch = db.batch();
+          defaultFeelings.forEach((feeling) => {
+            const docRef = db.collection("feelings").doc();
+            batch.set(docRef, feeling);
+          });
+          await batch.commit();
+          console.log("[Seeder] Seeded default feelings successfully");
+        } else {
+          console.log("[Seeder] Feelings collection is not empty, skipping feelings seeding.");
+        }
+        const coursesSnapshot = await db.collection("courses").limit(1).get();
+        if (coursesSnapshot.empty) {
+          console.log("[Seeder] Seeding default courses...");
+          const defaultCourses = [
+            {
+              title: "Introduction to Peace",
+              description: "Learn the basics of inner peace and mindfulness.",
+              duration: "4 weeks",
+              instructor: "Admin",
+              status: "active",
+              amount: 1200,
+              createdAt: /* @__PURE__ */ new Date(),
+              updatedAt: /* @__PURE__ */ new Date()
+            }
+          ];
+          const batch = db.batch();
+          defaultCourses.forEach((course) => {
+            const docRef = db.collection("courses").doc();
+            batch.set(docRef, course);
+          });
+          await batch.commit();
+          console.log("[Seeder] Seeded default courses successfully");
+        } else {
+          console.log("[Seeder] Courses collection is not empty, skipping.");
+        }
+        const usersSnapshot = await db.collection("users").limit(1).get();
+        if (usersSnapshot.empty) {
+          console.log("[Seeder] Seeding default users...");
+          const { auth: auth2 } = await Promise.resolve().then(() => (init_auth(), auth_exports));
+          try {
+            const adminUser = await auth2.api.signUpEmail({
+              body: {
+                name: "Admin Sanctuary",
+                email: "admin@pathtopeace.com",
+                password: "AdminPassword123"
+              }
+            });
+            if (adminUser) {
+              await db.collection("users").doc(adminUser.user.id).update({
+                role: "admin"
+              });
+              console.log("[Seeder] Seeded admin user (admin@pathtopeace.com) successfully");
+            }
+          } catch (authError) {
+            console.error("[Seeder] Failed to seed admin user:", authError);
+          }
+          try {
+            await auth2.api.signUpEmail({
+              body: {
+                name: "John Seeker",
+                email: "user@pathtopeace.com",
+                password: "UserPassword123"
+              }
+            });
+            console.log("[Seeder] Seeded regular user (user@pathtopeace.com) successfully");
+          } catch (authError) {
+            console.error("[Seeder] Failed to seed regular user:", authError);
+          }
+        } else {
+          console.log("[Seeder] Users collection is not empty, skipping user seeding.");
+        }
+      } catch (error) {
+        console.error("[Seeder] Error seeding database:", error);
+      }
+    };
+  }
+});
 
 // src/index.ts
-import express from "express";
-import cors from "cors";
-import dotenv3 from "dotenv";
-import morgan from "morgan";
+var import_express8 = __toESM(require("express"), 1);
+var import_cors = __toESM(require("cors"), 1);
+var import_dotenv5 = __toESM(require("dotenv"), 1);
+var import_morgan = __toESM(require("morgan"), 1);
 
 // src/routes/index.ts
-import { Router as Router7 } from "express";
-import { toNodeHandler } from "better-auth/node";
+var import_express7 = require("express");
+var import_node2 = require("better-auth/node");
+init_auth();
 
 // src/routes/user.routes.ts
-import { Router } from "express";
+var import_express = require("express");
 
 // src/middleware/auth.middleware.ts
-import { fromNodeHeaders } from "better-auth/node";
+init_auth();
+var import_node = require("better-auth/node");
 var getAuthSession = async (req) => {
   return await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers)
+    headers: (0, import_node.fromNodeHeaders)(req.headers)
   });
 };
 var authMiddleware = async (req, res, next) => {
@@ -59,6 +308,7 @@ var adminMiddleware = async (req, res, next) => {
 };
 
 // src/controllers/user.controller.ts
+init_firestore();
 var getProfile = async (req, res) => {
   const user = req.user;
   res.json({
@@ -87,15 +337,16 @@ var setMeAsAdmin = async (req, res) => {
 };
 
 // src/routes/user.routes.ts
-var router = Router();
+var router = (0, import_express.Router)();
 router.get("/me", authMiddleware, getProfile);
 router.get("/admin/set-me-as-admin", authMiddleware, setMeAsAdmin);
 var user_routes_default = router;
 
 // src/routes/course.routes.ts
-import { Router as Router2 } from "express";
+var import_express2 = require("express");
 
 // src/controllers/course.controller.ts
+init_firestore();
 var getPublicCourses = async (req, res) => {
   try {
     const snapshot = await db.collection("courses").where("status", "==", "active").get();
@@ -112,13 +363,14 @@ var getPublicCourses = async (req, res) => {
 };
 
 // src/controllers/payment.controller.ts
-import crypto from "crypto";
-import dotenv2 from "dotenv";
-import { FieldPath } from "firebase-admin/firestore";
+var import_crypto = __toESM(require("crypto"), 1);
+var import_dotenv4 = __toESM(require("dotenv"), 1);
+var import_firestore4 = require("firebase-admin/firestore");
+init_firestore();
 
 // src/utils/sslcommerz.ts
-import dotenv from "dotenv";
-dotenv.config();
+var import_dotenv3 = __toESM(require("dotenv"), 1);
+import_dotenv3.default.config();
 var STORE_ID = process.env.SSL_STORE_ID;
 var STORE_PASSWORD = process.env.SSL_STORE_PASSWORD;
 var SESSION_API = process.env.SSL_SESSION_API;
@@ -174,7 +426,7 @@ var validateSSLTransaction = async (valId) => {
 };
 
 // src/controllers/payment.controller.ts
-dotenv2.config();
+import_dotenv4.default.config();
 var WEB_URL = process.env.NEXT_PUBLIC_WEB_URL;
 if (!WEB_URL) {
   throw new Error("Missing NEXT_PUBLIC_WEB_URL environment variable. Please check your backend environment configuration.");
@@ -203,7 +455,7 @@ var initiatePayment = async (req, res) => {
       return res.status(400).json({ message: "This course is free. Please use the free enrollment option." });
     }
     const amountInBDT = Math.round(courseAmount);
-    const tranId = `TXN-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+    const tranId = `TXN-${import_crypto.default.randomBytes(6).toString("hex").toUpperCase()}`;
     const pendingEnrollment = {
       userId,
       courseId,
@@ -377,7 +629,7 @@ var enrollFreeCourse = async (req, res) => {
     if (!existingEnrollmentSnapshot.empty) {
       return res.status(400).json({ message: "You are already enrolled in this course." });
     }
-    const tranId = `FREE-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+    const tranId = `FREE-${import_crypto.default.randomBytes(6).toString("hex").toUpperCase()}`;
     const newEnrollment = {
       userId,
       courseId,
@@ -412,7 +664,7 @@ var getEnrolledCourses = async (req, res) => {
       return res.json([]);
     }
     const slicedCourseIds = courseIds.slice(0, 30);
-    const coursesSnapshot = await db.collection("courses").where(FieldPath.documentId(), "in", slicedCourseIds).get();
+    const coursesSnapshot = await db.collection("courses").where(import_firestore4.FieldPath.documentId(), "in", slicedCourseIds).get();
     const courses = coursesSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data()
@@ -425,15 +677,15 @@ var getEnrolledCourses = async (req, res) => {
 };
 
 // src/routes/course.routes.ts
-var router2 = Router2();
+var router2 = (0, import_express2.Router)();
 router2.get("/courses", getPublicCourses);
 router2.post("/courses/enroll-free", authMiddleware, enrollFreeCourse);
 router2.get("/courses/enrolled", authMiddleware, getEnrolledCourses);
 var course_routes_default = router2;
 
 // src/routes/payment.routes.ts
-import { Router as Router3 } from "express";
-var router3 = Router3();
+var import_express3 = require("express");
+var router3 = (0, import_express3.Router)();
 router3.post("/payment/initiate", authMiddleware, initiatePayment);
 router3.post("/payment/success", paymentSuccess);
 router3.post("/payment/fail", paymentFail);
@@ -442,9 +694,10 @@ router3.post("/payment/ipn", paymentIpn);
 var payment_routes_default = router3;
 
 // src/routes/saved-items.routes.ts
-import { Router as Router4 } from "express";
+var import_express4 = require("express");
 
 // src/controllers/saved-items.controller.ts
+init_firestore();
 var getSavedItems = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -560,7 +813,7 @@ var deleteSavedItemByItem = async (req, res) => {
 };
 
 // src/routes/saved-items.routes.ts
-var router4 = Router4();
+var router4 = (0, import_express4.Router)();
 router4.get("/saved-items", authMiddleware, getSavedItems);
 router4.post("/saved-items", authMiddleware, addSavedItem);
 router4.delete("/saved-items/:id", authMiddleware, deleteSavedItemById);
@@ -568,8 +821,9 @@ router4.delete("/saved-items/:type/:itemId", authMiddleware, deleteSavedItemByIt
 var saved_items_routes_default = router4;
 
 // src/routes/feeling.routes.ts
-import { Router as Router5 } from "express";
-var router5 = Router5();
+var import_express5 = require("express");
+init_firestore();
+var router5 = (0, import_express5.Router)();
 router5.get("/duas", async (req, res) => {
   try {
     const snapshot = await db.collection("duas").get();
@@ -589,9 +843,10 @@ router5.get("/duas", async (req, res) => {
 var feeling_routes_default = router5;
 
 // src/routes/admin.routes.ts
-import { Router as Router6 } from "express";
+var import_express6 = require("express");
 
 // src/controllers/admin.controller.ts
+init_firestore();
 var getUsers = async (req, res) => {
   try {
     const snapshot = await db.collection("users").get();
@@ -923,7 +1178,7 @@ var getStats = async (req, res) => {
 };
 
 // src/routes/admin.routes.ts
-var router6 = Router6();
+var router6 = (0, import_express6.Router)();
 router6.use(adminMiddleware);
 router6.get("/stats", getStats);
 router6.get("/users", getUsers);
@@ -944,8 +1199,8 @@ router6.delete("/feelings/:id", deleteFeeling);
 var admin_routes_default = router6;
 
 // src/routes/index.ts
-var router7 = Router7();
-router7.use("/auth", toNodeHandler(auth));
+var router7 = (0, import_express7.Router)();
+router7.use("/auth", (0, import_node2.toNodeHandler)(auth));
 router7.use("/", user_routes_default);
 router7.use("/", course_routes_default);
 router7.use("/", payment_routes_default);
@@ -955,16 +1210,16 @@ router7.use("/admin", admin_routes_default);
 var routes_default = router7;
 
 // src/index.ts
-dotenv3.config();
-var app = express();
+import_dotenv5.default.config();
+var app = (0, import_express8.default)();
 var port = process.env.PORT || 3001;
-app.use(morgan("dev"));
-app.use(cors({
+app.use((0, import_morgan.default)("dev"));
+app.use((0, import_cors.default)({
   origin: ["http://localhost:3000"],
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(import_express8.default.json());
+app.use(import_express8.default.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Path to Peace API" });
 });
@@ -975,11 +1230,11 @@ app.use("/api", routes_default);
 app.listen(port, async () => {
   console.log(`Server running at http://localhost:${port}`);
   try {
-    const { db: db2 } = await import("./firestore-MB2BIUUN.js");
+    const { db: db2 } = await Promise.resolve().then(() => (init_firestore(), firestore_exports));
     await db2.collection("health").limit(1).get();
     console.log("Firestore connection: SUCCESSFUL (Pinged)");
-    const { seedDatabase } = await import("./seed-AC5LBHZT.js");
-    await seedDatabase();
+    const { seedDatabase: seedDatabase2 } = await Promise.resolve().then(() => (init_seed(), seed_exports));
+    await seedDatabase2();
   } catch (error) {
     console.error("Firestore connection: FAILED", error);
   }

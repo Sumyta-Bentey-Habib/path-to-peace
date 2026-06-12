@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { ObjectId } from "mongodb";
-import { db } from "../db/mongo.js";
+import { db } from "../db/firestore.js";
 
 /**
  * Fetch the current user profile.
@@ -26,10 +25,9 @@ export const getProfile = async (req: Request, res: Response) => {
 export const setMeAsAdmin = async (req: Request, res: Response) => {
     const user = (req as any).user;
     try {
-        await db.collection("users").updateOne(
-            { _id: new ObjectId(user.id) },
-            { $set: { role: "admin" } }
-        );
+        await db.collection("users").doc(user.id).update({
+            role: "admin"
+        });
         res.json({ message: "You are now an admin. Please refresh the page." });
     } catch (error) {
         console.error("Failed to set admin role:", error);
