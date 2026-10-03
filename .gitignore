@@ -49,5 +49,5 @@ next-env.d.ts
 service-account.json
 service.json
 
-
-
+# Build output
+dist/
