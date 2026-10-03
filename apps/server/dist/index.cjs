@@ -45,15 +45,16 @@ var init_firestore = __esm({
     import_dotenv.default.config();
     if (import_firebase_admin.default.apps.length === 0) {
       const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT;
-      const projectId = process.env.FIREBASE_PROJECT_ID || "path-to-peace-4cacd";
       if (serviceAccountPath && import_fs.default.existsSync(serviceAccountPath)) {
         console.log(`[Firebase] Initializing with service account from: ${serviceAccountPath}`);
         const serviceAccount = JSON.parse(import_fs.default.readFileSync(import_path.default.resolve(serviceAccountPath), "utf8"));
+        const projectId = serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID;
         import_firebase_admin.default.initializeApp({
           credential: import_firebase_admin.default.credential.cert(serviceAccount),
           projectId
         });
       } else {
+        const projectId = process.env.FIREBASE_PROJECT_ID;
         console.log(`[Firebase] Initializing default application (Emulator or Default Credentials) for project: ${projectId}`);
         import_firebase_admin.default.initializeApp({
           projectId
@@ -117,13 +118,14 @@ var seed_exports = {};
 __export(seed_exports, {
   seedDatabase: () => seedDatabase
 });
-var import_fs2, import_path2, import_url, import_meta, seedDatabase;
+var import_fs2, import_path2, import_node_process, import_url, import_meta, seedDatabase;
 var init_seed = __esm({
   "src/db/seed.ts"() {
     "use strict";
     init_firestore();
     import_fs2 = __toESM(require("fs"), 1);
     import_path2 = __toESM(require("path"), 1);
+    import_node_process = __toESM(require("process"), 1);
     import_url = require("url");
     import_meta = {};
     seedDatabase = async () => {
@@ -249,6 +251,15 @@ var init_seed = __esm({
         console.error("[Seeder] Error seeding database:", error);
       }
     };
+    if (import_node_process.default.argv[1] && (0, import_url.fileURLToPath)(import_meta.url) === import_path2.default.resolve(import_node_process.default.argv[1])) {
+      seedDatabase().then(() => {
+        console.log("[Seeder] Seeding process complete.");
+        import_node_process.default.exit(0);
+      }).catch((err) => {
+        console.error("[Seeder] Fatal error:", err);
+        import_node_process.default.exit(1);
+      });
+    }
   }
 });
 
