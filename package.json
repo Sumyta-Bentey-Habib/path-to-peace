@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "dev:server": "pnpm --filter server dev",
+    "seed": "pnpm --filter server seed",
     "build": "pnpm --recursive build",
     "lint": "pnpm --recursive lint",
     "start": "pnpm --filter web start"

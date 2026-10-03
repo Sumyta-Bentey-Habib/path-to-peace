@@ -10,7 +10,7 @@ const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID
+    projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || "path-to-peace-b21d5"
 });
 
 const db = admin.firestore();

@@ -1,6 +1,7 @@
 import { db } from "./firestore.js";
 import fs from "fs";
 import path from "path";
+import process from "node:process";
 import { fileURLToPath } from "url";
 
 export const seedDatabase = async () => {
@@ -143,3 +144,14 @@ export const seedDatabase = async () => {
         console.error("[Seeder] Error seeding database:", error);
     }
 };
+
+// Allow direct execution via CLI (e.g. tsx src/db/seed.ts)
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+    seedDatabase().then(() => {
+        console.log("[Seeder] Seeding process complete.");
+        process.exit(0);
+    }).catch((err) => {
+        console.error("[Seeder] Fatal error:", err);
+        process.exit(1);
+    });
+}

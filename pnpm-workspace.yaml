@@ -3,8 +3,8 @@ packages:
   - 'packages/*'
 
 allowBuilds:
+  esbuild: true
+  msw: true
   protobufjs: false
-
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+  sharp: true
+  unrs-resolver: true
