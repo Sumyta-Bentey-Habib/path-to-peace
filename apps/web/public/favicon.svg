@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="emeraldBg" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#044434" />
+      <stop offset="50%" stop-color="#003527" />
+      <stop offset="100%" stop-color="#002118" />
+    </linearGradient>
+
+    <!-- Warm Spiritual Gold Gradient -->
+    <linearGradient id="goldGradient" x1="20%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#fff4b8" />
+      <stop offset="35%" stop-color="#fed65b" />
+      <stop offset="75%" stop-color="#dfa926" />
+      <stop offset="100%" stop-color="#b67f0e" />
+    </linearGradient>
+
+    <!-- Subtle Golden Border -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fed65b" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#fed65b" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#fed65b" stop-opacity="0.35" />
+    </linearGradient>
+
+    <!-- Center Radiant Glow -->
+    <radialGradient id="centerGlow" cx="54%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#fed65b" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#fed65b" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#fed65b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Star Glow -->
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff8d6" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#fed65b" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#fed65b" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sanctuary Squircle Container -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#emeraldBg)" stroke="url(#borderGrad)" stroke-width="8" />
+
+  <!-- Ambient Glow Behind Motif -->
+  <circle cx="266" cy="256" r="160" fill="url(#centerGlow)" />
+
+  <!-- Meditative Crescent Moon -->
+  <!-- Outer curve + Inner curve forming harmonious Islamic crescent -->
+  <path d="M 288 126
+           C 200 126 132 196 132 284
+           C 132 368 198 434 282 434
+           C 334 434 380 408 406 368
+           C 342 388 274 366 238 318
+           C 202 268 206 200 248 154
+           C 260 141 274 132 288 126 Z"
+        fill="url(#goldGradient)" />
+
+  <!-- Radiant Star Glow -->
+  <circle cx="330" cy="214" r="58" fill="url(#starGlow)" />
+
+  <!-- 8-Pointed Star of Serenity (Rub-el-Hizb geometry) -->
+  <!-- Layer 1: Square rotated 0 deg -->
+  <rect x="306" y="190" width="48" height="48" rx="6" fill="url(#goldGradient)" />
+  <!-- Layer 2: Square rotated 45 deg -->
+  <rect x="306" y="190" width="48" height="48" rx="6" fill="url(#goldGradient)" transform="rotate(45 330 214)" />
+  <!-- Center Peace Core -->
+  <circle cx="330" cy="214" r="9" fill="#003527" />
+  <circle cx="330" cy="214" r="4.5" fill="#ffe994" />
+
+  <!-- Subtle Serene Path Accent (Bottom Calm Reflection) -->
+  <path d="M 194 384 C 238 372 280 376 318 392" stroke="#fed65b" stroke-opacity="0.28" stroke-width="4.5" stroke-linecap="round" />
+</svg>

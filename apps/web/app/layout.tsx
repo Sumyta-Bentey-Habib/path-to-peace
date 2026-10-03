@@ -23,6 +23,13 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Path to Peace | Meditative Spiritual Sanctuary",
   description: "A digital experience that breathes. Explore spiritual wisdom through a meditative editorial journey.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 import { ToastProvider } from "@/components/ui/toast";
