@@ -11,8 +11,21 @@ const port = process.env.PORT || 3001;
 
 // --- Global Middleware ---
 app.use(morgan("dev"));
+
+const allowedOrigins = [
+    "http://localhost:3000",
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL, process.env.FRONTEND_URL.replace(/\/$/, "")] : []),
+    ...(process.env.NEXT_PUBLIC_WEB_URL ? [process.env.NEXT_PUBLIC_WEB_URL, process.env.NEXT_PUBLIC_WEB_URL.replace(/\/$/, "")] : [])
+];
+
 app.use(cors({
-    origin: ["http://localhost:3000"],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin not allowed by CORS: ${origin}`));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
