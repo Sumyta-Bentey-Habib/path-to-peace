@@ -44,6 +44,7 @@ next-env.d.ts
 
 # local cache and logs
 .npm-cache/
+.pnpm-store/
 
 # firebase credentials
 service-account.json

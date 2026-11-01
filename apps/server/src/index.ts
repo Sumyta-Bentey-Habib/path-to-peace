@@ -34,15 +34,15 @@ app.use("/api", apiRoutes);
 app.listen(port, async () => {
     console.log(`Server running at http://localhost:${port}`);
     try {
-        const { db } = await import("./db/firestore.js");
-        // Perform a simple read to verify Firestore connection
-        await db.collection("health").limit(1).get();
-        console.log("Firestore connection: SUCCESSFUL (Pinged)");
+        const { prisma } = await import("./db/prisma.js");
+        // Perform a simple query to verify database connection
+        await prisma.$queryRaw`SELECT 1`;
+        console.log("Database connection: SUCCESSFUL (Pinged)");
 
         // Run database seeder
         const { seedDatabase } = await import("./db/seed.js");
         await seedDatabase();
     } catch (error) {
-        console.error("Firestore connection: FAILED", error);
+        console.error("Database connection: FAILED", error);
     }
 });

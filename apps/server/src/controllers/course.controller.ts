@@ -1,18 +1,19 @@
 import { Request, Response } from "express";
-import { db } from "../db/firestore.js";
+import { prisma } from "../db/prisma.js";
 
 /**
  * Fetch all active courses for public display.
  */
 export const getPublicCourses = async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection("courses").where("status", "==", "active").get();
-        const courses = snapshot.docs.map((doc: any) => ({
-            id: doc.id,
-            _id: doc.id,
-            ...doc.data()
+        const courses = await prisma.course.findMany({
+            where: { status: "active" }
+        });
+        const mapped = courses.map((course) => ({
+            ...course,
+            _id: course.id
         }));
-        res.json(courses);
+        res.json(mapped);
     } catch (error) {
         console.error("Failed to fetch public courses:", error);
         res.status(500).json({ message: "Failed to fetch courses" });
