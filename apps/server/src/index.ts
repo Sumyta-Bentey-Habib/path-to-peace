@@ -62,18 +62,22 @@ app.get(["/health", "/api/health"], async (req, res) => {
 app.use("/api", apiRoutes);
 
 // --- Server & Database Connection ---
-app.listen(port, async () => {
-    console.log(`Server running at http://localhost:${port}`);
-    try {
-        const { prisma } = await import("./db/prisma.js");
-        // Perform a simple query to verify database connection
-        await prisma.$queryRaw`SELECT 1`;
-        console.log("Database connection: SUCCESSFUL (Pinged)");
+if (!process.env.VERCEL) {
+    app.listen(port, async () => {
+        console.log(`Server running at http://localhost:${port}`);
+        try {
+            const { prisma } = await import("./db/prisma.js");
+            // Perform a simple query to verify database connection
+            await prisma.$queryRaw`SELECT 1`;
+            console.log("Database connection: SUCCESSFUL (Pinged)");
 
-        // Run database seeder
-        const { seedDatabase } = await import("./db/seed.js");
-        await seedDatabase();
-    } catch (error) {
-        console.error("Database connection: FAILED", error);
-    }
-});
+            // Run database seeder
+            const { seedDatabase } = await import("./db/seed.js");
+            await seedDatabase();
+        } catch (error) {
+            console.error("Database connection: FAILED", error);
+        }
+    });
+}
+
+export default app;
