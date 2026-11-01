@@ -1,4 +1,4 @@
-import { db } from "./firestore.js";
+import { prisma } from "./prisma.js";
 import fs from "fs";
 import path from "path";
 import process from "node:process";
@@ -7,73 +7,60 @@ import { fileURLToPath } from "url";
 export const seedDatabase = async () => {
     try {
         console.log("[Seeder] Starting database seeding...");
-        
+
         // Use import.meta.url to construct an absolute path independent of process.cwd()
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
         const webLibPath = path.resolve(__dirname, "../../../web/lib/data");
         const duasPath = path.join(webLibPath, "duas.json");
 
-        // Helper to chunk arrays for Firestore batches (max 500 ops per batch)
-        const chunkArray = <T>(array: T[], size: number): T[][] => {
-            const chunked: T[][] = [];
-            for (let i = 0; i < array.length; i += size) {
-                chunked.push(array.slice(i, i + size));
-            }
-            return chunked;
-        };
-
         // 1. Seed Duas
-        const duasSnapshot = await db.collection("duas").limit(1).get();
-        if (duasSnapshot.empty && fs.existsSync(duasPath)) {
+        const duasCount = await prisma.dua.count();
+        if (duasCount === 0 && fs.existsSync(duasPath)) {
             console.log("[Seeder] Seeding Duas...");
             const duasData = JSON.parse(fs.readFileSync(duasPath, "utf-8"));
             if (duasData.duas && duasData.duas.length > 0) {
-                const chunks = chunkArray(duasData.duas, 400);
-                for (const chunk of chunks) {
-                    const batch = db.batch();
-                    chunk.forEach((dua: any) => {
-                        const docRef = db.collection("duas").doc();
-                        batch.set(docRef, {
-                            ...dua,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        });
-                    });
-                    await batch.commit();
-                }
-                console.log("[Seeder] Seeded Duas successfully");
+                const formattedDuas = duasData.duas.map((dua: any) => ({
+                    category: dua.category || "Daily Life",
+                    title: dua.title,
+                    description: dua.description || null,
+                    arabic: dua.arabic || null,
+                    transliteration: dua.transliteration || null,
+                    meaning: dua.meaning || null,
+                    reference: dua.reference || null,
+                }));
+                await prisma.dua.createMany({
+                    data: formattedDuas
+                });
+                console.log(`[Seeder] Seeded ${formattedDuas.length} Duas successfully`);
             }
         } else {
-            console.log("[Seeder] Duas collection is not empty or JSON file missing, skipping.");
+            console.log("[Seeder] Duas table is not empty or JSON file missing, skipping.");
         }
 
         // 2. Seed Feelings
-        const feelingsSnapshot = await db.collection("feelings").limit(1).get();
-        if (feelingsSnapshot.empty) {
+        const feelingsCount = await prisma.feeling.count();
+        if (feelingsCount === 0) {
             console.log("[Seeder] Seeding default feelings...");
             const defaultFeelings = [
-                { label: "Sad", icon: "Frown", createdAt: new Date(), updatedAt: new Date() },
-                { label: "Anxious", icon: "AlertCircle", createdAt: new Date(), updatedAt: new Date() },
-                { label: "Stressed", icon: "Zap", createdAt: new Date(), updatedAt: new Date() },
-                { label: "Grateful", icon: "Heart", createdAt: new Date(), updatedAt: new Date() },
-                { label: "Angry", icon: "Flame", createdAt: new Date(), updatedAt: new Date() },
-                { label: "Weak", icon: "Activity", createdAt: new Date(), updatedAt: new Date() }
+                { label: "Sad", icon: "Frown" },
+                { label: "Anxious", icon: "AlertCircle" },
+                { label: "Stressed", icon: "Zap" },
+                { label: "Grateful", icon: "Heart" },
+                { label: "Angry", icon: "Flame" },
+                { label: "Weak", icon: "Activity" }
             ];
-            const batch = db.batch();
-            defaultFeelings.forEach((feeling) => {
-                const docRef = db.collection("feelings").doc();
-                batch.set(docRef, feeling);
+            await prisma.feeling.createMany({
+                data: defaultFeelings
             });
-            await batch.commit();
             console.log("[Seeder] Seeded default feelings successfully");
         } else {
-            console.log("[Seeder] Feelings collection is not empty, skipping feelings seeding.");
+            console.log("[Seeder] Feelings table is not empty, skipping feelings seeding.");
         }
 
         // 3. Seed Courses
-        const coursesSnapshot = await db.collection("courses").limit(1).get();
-        if (coursesSnapshot.empty) {
+        const coursesCount = await prisma.course.count();
+        if (coursesCount === 0) {
             console.log("[Seeder] Seeding default courses...");
             const defaultCourses = [
                 {
@@ -82,25 +69,20 @@ export const seedDatabase = async () => {
                     duration: "4 weeks",
                     instructor: "Admin",
                     status: "active",
-                    amount: 1200,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
+                    amount: 1200
                 }
             ];
-            const batch = db.batch();
-            defaultCourses.forEach((course) => {
-                const docRef = db.collection("courses").doc();
-                batch.set(docRef, course);
+            await prisma.course.createMany({
+                data: defaultCourses
             });
-            await batch.commit();
             console.log("[Seeder] Seeded default courses successfully");
         } else {
-            console.log("[Seeder] Courses collection is not empty, skipping.");
+            console.log("[Seeder] Courses table is not empty, skipping.");
         }
 
         // 4. Seed Default Users (Admin & Regular User)
-        const usersSnapshot = await db.collection("users").limit(1).get();
-        if (usersSnapshot.empty) {
+        const usersCount = await prisma.user.count();
+        if (usersCount === 0) {
             console.log("[Seeder] Seeding default users...");
             const { auth } = await import("../auth.js");
 
@@ -114,9 +96,10 @@ export const seedDatabase = async () => {
                     }
                 });
 
-                if (adminUser) {
-                    await db.collection("users").doc(adminUser.user.id).update({
-                        role: "admin"
+                if (adminUser?.user?.id) {
+                    await prisma.user.update({
+                        where: { id: adminUser.user.id },
+                        data: { role: "admin" }
                     });
                     console.log("[Seeder] Seeded admin user (admin@pathtopeace.com) successfully");
                 }
@@ -138,7 +121,7 @@ export const seedDatabase = async () => {
                 console.error("[Seeder] Failed to seed regular user:", authError);
             }
         } else {
-            console.log("[Seeder] Users collection is not empty, skipping user seeding.");
+            console.log("[Seeder] Users table is not empty, skipping user seeding.");
         }
     } catch (error) {
         console.error("[Seeder] Error seeding database:", error);

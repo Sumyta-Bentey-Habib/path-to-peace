@@ -1,8 +1,7 @@
 import crypto from "crypto";
 import dotenv from "dotenv";
 import { Request, Response } from "express";
-import { FieldPath } from "firebase-admin/firestore";
-import { db } from "../db/firestore.js";
+import { prisma } from "../db/prisma.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { initiateSSLSession, validateSSLTransaction } from "../utils/sslcommerz.js";
 
@@ -14,7 +13,6 @@ const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL;
 if (!WEB_URL) {
     throw new Error("Missing NEXT_PUBLIC_WEB_URL environment variable. Please check your backend environment configuration.");
 }
-
 
 export const initiatePayment = async (req: AuthRequest, res: Response) => {
     try {
@@ -30,21 +28,23 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         }
 
         // Fetch course details
-        const courseDoc = await db.collection("courses").doc(courseId as string).get();
-        if (!courseDoc.exists) {
+        const course = await prisma.course.findUnique({
+            where: { id: String(courseId) }
+        });
+        if (!course) {
             return res.status(404).json({ message: "Course not found" });
         }
-        const course = courseDoc.data()!;
 
         // Check if user is already enrolled
-        const existingEnrollmentSnapshot = await db.collection("enrollments")
-            .where("userId", "==", userId)
-            .where("courseId", "==", courseId)
-            .where("paymentStatus", "==", "paid")
-            .limit(1)
-            .get();
+        const existingEnrollment = await prisma.enrollment.findFirst({
+            where: {
+                userId,
+                courseId: String(courseId),
+                paymentStatus: "paid"
+            }
+        });
 
-        if (!existingEnrollmentSnapshot.empty) {
+        if (existingEnrollment) {
             return res.status(400).json({ message: "You are already enrolled in this course." });
         }
 
@@ -59,18 +59,17 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         const tranId = `TXN-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
 
         // Create a pending enrollment/transaction record in our database
-        const pendingEnrollment = {
-            userId,
-            courseId,
-            courseTitle: course.title,
-            amount: courseAmount,
-            tranId,
-            status: "pending",
-            paymentStatus: "pending",
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        await db.collection("enrollments").add(pendingEnrollment);
+        await prisma.enrollment.create({
+            data: {
+                userId,
+                courseId: course.id,
+                courseTitle: course.title,
+                amount: courseAmount,
+                tranId,
+                status: "pending",
+                paymentStatus: "pending"
+            }
+        });
 
         console.log(`[Payment] Initiating SSLCommerz session for Course: "${course.title}", Amount: ${amountInBDT} BDT, TranId: ${tranId}`);
 
@@ -90,10 +89,9 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         } else {
             console.error("[Payment] SSLCommerz Initiation Failed:", data);
             // Roll back the pending enrollment since payment initialization failed
-            const rollbackSnapshot = await db.collection("enrollments").where("tranId", "==", tranId).get();
-            const batch = db.batch();
-            rollbackSnapshot.docs.forEach((doc: any) => batch.delete(doc.ref));
-            await batch.commit();
+            await prisma.enrollment.deleteMany({
+                where: { tranId }
+            });
 
             return res.status(500).json({ message: "Failed to initiate payment with SSLCommerz gateway", details: data });
         }
@@ -124,22 +122,26 @@ export const paymentSuccess = async (req: Request, res: Response) => {
             console.log(`[Payment] Validation Successful for TranId: ${tran_id}`);
 
             // Find the enrollment
-            const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
-            if (enrollmentSnapshot.empty) {
+            const enrollment = await prisma.enrollment.findUnique({
+                where: { tranId: String(tran_id) }
+            });
+
+            if (!enrollment) {
                 console.error(`[Payment] Success callback: Enrollment not found for TranId ${tran_id}`);
                 return res.redirect(`${WEB_URL}/payment/fail?reason=enrollment_not_found`);
             }
-            const enrollmentDoc = enrollmentSnapshot.docs[0];
-            const enrollment = enrollmentDoc.data();
 
             // Update enrollment status to active
-            await enrollmentDoc.ref.update({
-                status: "active",
-                paymentStatus: "paid",
-                cardType: card_type || validationData.card_type,
-                bankTranId: bank_tran_id || validationData.bank_tran_id,
-                validationDetails: validationData,
-                updatedAt: new Date()
+            await prisma.enrollment.update({
+                where: { tranId: String(tran_id) },
+                data: {
+                    status: "active",
+                    paymentStatus: "paid",
+                    cardType: card_type || validationData.card_type,
+                    bankTranId: bank_tran_id || validationData.bank_tran_id,
+                    validationDetails: validationData,
+                    updatedAt: new Date()
+                }
             });
 
             console.log(`[Payment] Enrollment activated successfully for User: ${enrollment.userId}, Course: ${enrollment.courseId}`);
@@ -149,14 +151,14 @@ export const paymentSuccess = async (req: Request, res: Response) => {
             console.error(`[Payment] Validation FAILED at SSLCommerz for TranId: ${tran_id}. Details:`, validationData);
 
             // Mark transaction as failed in the DB
-            const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
-            if (!enrollmentSnapshot.empty) {
-                await enrollmentSnapshot.docs[0].ref.update({
+            await prisma.enrollment.updateMany({
+                where: { tranId: String(tran_id) },
+                data: {
                     status: "failed",
                     paymentStatus: "failed",
                     updatedAt: new Date()
-                });
-            }
+                }
+            });
 
             return res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}&reason=validation_failed`);
         }
@@ -174,15 +176,15 @@ export const paymentFail = async (req: Request, res: Response) => {
         const { tran_id, error } = req.body;
         console.warn(`[Payment] Received FAIL callback for TranId: ${tran_id}, Error: ${error}`);
 
-        const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
-        if (!enrollmentSnapshot.empty) {
-            await enrollmentSnapshot.docs[0].ref.update({
+        await prisma.enrollment.updateMany({
+            where: { tranId: String(tran_id) },
+            data: {
                 status: "failed",
                 paymentStatus: "failed",
-                failureReason: error,
+                failureReason: error ? String(error) : null,
                 updatedAt: new Date()
-            });
-        }
+            }
+        });
 
         res.redirect(`${WEB_URL}/payment/fail?tran_id=${tran_id}`);
     } catch (err) {
@@ -199,14 +201,14 @@ export const paymentCancel = async (req: Request, res: Response) => {
         const { tran_id } = req.body;
         console.warn(`[Payment] Received CANCEL callback for TranId: ${tran_id}`);
 
-        const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
-        if (!enrollmentSnapshot.empty) {
-            await enrollmentSnapshot.docs[0].ref.update({
+        await prisma.enrollment.updateMany({
+            where: { tranId: String(tran_id) },
+            data: {
                 status: "cancelled",
                 paymentStatus: "cancelled",
                 updatedAt: new Date()
-            });
-        }
+            }
+        });
 
         res.redirect(`${WEB_URL}/payment/cancel`);
     } catch (err) {
@@ -228,21 +230,23 @@ export const paymentIpn = async (req: Request, res: Response) => {
             const validationData = await validateSSLTransaction(val_id as string);
 
             if (validationData && (validationData.status === "VALID" || validationData.status === "VALIDATED")) {
-                const enrollmentSnapshot = await db.collection("enrollments").where("tranId", "==", tran_id).limit(1).get();
-                if (!enrollmentSnapshot.empty) {
-                    const doc = enrollmentSnapshot.docs[0];
-                    const enrollment = doc.data();
-                    if (enrollment.paymentStatus !== "paid") {
-                        await doc.ref.update({
+                const enrollment = await prisma.enrollment.findUnique({
+                    where: { tranId: String(tran_id) }
+                });
+
+                if (enrollment && enrollment.paymentStatus !== "paid") {
+                    await prisma.enrollment.update({
+                        where: { tranId: String(tran_id) },
+                        data: {
                             status: "active",
                             paymentStatus: "paid",
                             cardType: card_type,
                             bankTranId: bank_tran_id,
                             validationDetails: validationData,
                             updatedAt: new Date()
-                        });
-                        console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
-                    }
+                        }
+                    });
+                    console.log(`[Payment IPN] Activated enrollment in background for TranId: ${tran_id}`);
                 }
             }
         }
@@ -269,11 +273,12 @@ export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: "Administrators cannot enroll in courses." });
         }
 
-        const courseDoc = await db.collection("courses").doc(courseId as string).get();
-        if (!courseDoc.exists) {
+        const course = await prisma.course.findUnique({
+            where: { id: String(courseId) }
+        });
+        if (!course) {
             return res.status(404).json({ message: "Course not found" });
         }
-        const course = courseDoc.data()!;
 
         const courseAmount = Number(course.amount) || 0;
         if (courseAmount > 0) {
@@ -281,32 +286,32 @@ export const enrollFreeCourse = async (req: AuthRequest, res: Response) => {
         }
 
         // Check if user is already enrolled
-        const existingEnrollmentSnapshot = await db.collection("enrollments")
-            .where("userId", "==", userId)
-            .where("courseId", "==", courseId)
-            .where("paymentStatus", "==", "paid")
-            .limit(1)
-            .get();
+        const existingEnrollment = await prisma.enrollment.findFirst({
+            where: {
+                userId,
+                courseId: course.id,
+                paymentStatus: "paid"
+            }
+        });
 
-        if (!existingEnrollmentSnapshot.empty) {
+        if (existingEnrollment) {
             return res.status(400).json({ message: "You are already enrolled in this course." });
         }
 
         const tranId = `FREE-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
 
-        const newEnrollment = {
-            userId,
-            courseId,
-            courseTitle: course.title,
-            amount: 0,
-            tranId,
-            status: "active",
-            paymentStatus: "paid",
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
+        await prisma.enrollment.create({
+            data: {
+                userId,
+                courseId: course.id,
+                courseTitle: course.title,
+                amount: 0,
+                tranId,
+                status: "active",
+                paymentStatus: "paid"
+            }
+        });
 
-        await db.collection("enrollments").add(newEnrollment);
         console.log(`[Payment] Enrolled in free course: "${course.title}" for User: ${userId}`);
 
         res.json({ message: "Enrolled in free course successfully", tranId });
@@ -326,32 +331,21 @@ export const getEnrolledCourses = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        // Find all active/paid enrollments for the user
-        const enrollmentsSnapshot = await db.collection("enrollments")
-            .where("userId", "==", userId)
-            .where("paymentStatus", "==", "paid")
-            .get();
+        // Find all active/paid enrollments for the user with courses included
+        const enrollments = await prisma.enrollment.findMany({
+            where: {
+                userId,
+                paymentStatus: "paid"
+            },
+            include: {
+                course: true
+            }
+        });
 
-        if (enrollmentsSnapshot.empty) {
-            return res.json([]);
-        }
-
-        // Map course ids and fetch full details
-        const courseIds = enrollmentsSnapshot.docs.map((doc: any) => doc.data().courseId);
-        if (courseIds.length === 0) {
-            return res.json([]);
-        }
-
-        // Firestore limits "in" queries to 30 items.
-        // Slice the array if needed (typically user won't have >30 courses).
-        const slicedCourseIds = courseIds.slice(0, 30);
-        const coursesSnapshot = await db.collection("courses")
-            .where(FieldPath.documentId(), "in", slicedCourseIds)
-            .get();
-
-        const courses = coursesSnapshot.docs.map((doc: any) => ({
-            id: doc.id,
-            ...doc.data()
+        const courses = enrollments.map((item) => ({
+            ...item.course,
+            id: item.course.id,
+            _id: item.course.id
         }));
 
         res.json(courses);

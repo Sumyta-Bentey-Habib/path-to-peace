@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
-import { db } from "../db/firestore.js";
+import { prisma } from "../db/prisma.js";
 
 /**
  * Fetch all users in the system.
  */
 export const getUsers = async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection("users").get();
-        const mappedUsers = snapshot.docs.map((doc: any) => ({
-            ...doc.data() as any,
-            id: doc.id,
-            _id: doc.id
+        const users = await prisma.user.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        const mappedUsers = users.map((u) => ({
+            ...u,
+            _id: u.id
         }));
         res.json(mappedUsers);
     } catch (error) {
@@ -28,18 +29,25 @@ export const updateUser = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const updateData = { ...req.body };
-    delete updateData._id; // Ensure we don't try to update immutable fields
-    delete updateData.id;
+    const { role, name, email, banned, banReason, banExpires } = req.body;
 
     try {
-        const docRef = db.collection("users").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.user.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        await docRef.update(updateData);
+        await prisma.user.update({
+            where: { id },
+            data: {
+                ...(role !== undefined && { role }),
+                ...(name !== undefined && { name }),
+                ...(email !== undefined && { email }),
+                ...(banned !== undefined && { banned }),
+                ...(banReason !== undefined && { banReason }),
+                ...(banExpires !== undefined && { banExpires: banExpires ? new Date(banExpires) : null }),
+            }
+        });
         res.json({ message: "User updated successfully" });
     } catch (error) {
         console.error("Failed to update user:", error);
@@ -57,41 +65,19 @@ export const deleteUser = async (req: Request, res: Response) => {
     }
 
     try {
-        const userDocRef = db.collection("users").doc(id);
-        const userDoc = await userDocRef.get();
-        if (!userDoc.exists) {
+        const existing = await prisma.user.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Cascade delete all user-related data in a batch
-        const batch = db.batch();
-        batch.delete(userDocRef);
-
-        const collections = ["accounts", "sessions", "enrollments", "saved_items"];
-        const deletedCounts = {
-            userDeleted: 1,
-            accountsDeleted: 0,
-            sessionsDeleted: 0,
-            enrollmentsDeleted: 0,
-            savedItemsDeleted: 0
-        };
-
-        for (const col of collections) {
-            const snap = await db.collection(col).where("userId", "==", id).get();
-            snap.docs.forEach((doc: any) => {
-                batch.delete(doc.ref);
-            });
-            if (col === "accounts") deletedCounts.accountsDeleted = snap.size;
-            if (col === "sessions") deletedCounts.sessionsDeleted = snap.size;
-            if (col === "enrollments") deletedCounts.enrollmentsDeleted = snap.size;
-            if (col === "saved_items") deletedCounts.savedItemsDeleted = snap.size;
-        }
-
-        await batch.commit();
+        // Prisma schema handles cascading deletes to accounts, sessions, enrollments, saved_items
+        await prisma.user.delete({
+            where: { id }
+        });
 
         res.json({
             message: "User and all associated data deleted successfully",
-            details: deletedCounts
+            details: { userDeleted: 1 }
         });
     } catch (error) {
         console.error("Failed to delete user:", error);
@@ -106,13 +92,14 @@ export const deleteUser = async (req: Request, res: Response) => {
  */
 export const getCourses = async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection("courses").get();
-        const courses = snapshot.docs.map((doc: any) => ({
-            ...doc.data() as any,
-            id: doc.id,
-            _id: doc.id
+        const courses = await prisma.course.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        const mappedCourses = courses.map((c) => ({
+            ...c,
+            _id: c.id
         }));
-        res.json(courses);
+        res.json(mappedCourses);
     } catch (error) {
         console.error("Failed to fetch courses:", error);
         res.status(500).json({ message: "Failed to fetch courses" });
@@ -124,7 +111,7 @@ export const getCourses = async (req: Request, res: Response) => {
  */
 export const createCourse = async (req: Request, res: Response) => {
     try {
-        const { title, amount } = req.body;
+        const { title, description, duration, instructor, status, amount } = req.body;
         if (!title || typeof title !== "string" || title.trim() === "") {
             return res.status(400).json({ message: "Course title is required and must be a non-empty string" });
         }
@@ -134,17 +121,18 @@ export const createCourse = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Course amount is required and must be a valid non-negative number" });
         }
 
-        const courseData = {
-            ...req.body,
-            amount: parsedAmount,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        delete courseData._id;
-        delete courseData.id;
+        const created = await prisma.course.create({
+            data: {
+                title: title.trim(),
+                description: description ?? null,
+                duration: duration ?? null,
+                instructor: instructor ?? null,
+                status: status ?? "active",
+                amount: parsedAmount
+            }
+        });
 
-        const docRef = await db.collection("courses").add(courseData);
-        res.status(201).json({ message: "Course created successfully", id: docRef.id, _id: docRef.id });
+        res.status(201).json({ message: "Course created successfully", id: created.id, _id: created.id });
     } catch (error) {
         console.error("Failed to create course:", error);
         res.status(500).json({ message: "Failed to create course" });
@@ -160,26 +148,33 @@ export const updateCourse = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const updateData = { ...req.body };
-    delete updateData._id;
-    delete updateData.id;
+    const { title, description, duration, instructor, status, amount } = req.body;
 
-    if (updateData.amount !== undefined) {
-        const parsedAmount = Number(updateData.amount);
+    let parsedAmount: number | undefined;
+    if (amount !== undefined) {
+        parsedAmount = Number(amount);
         if (isNaN(parsedAmount) || parsedAmount < 0) {
             return res.status(400).json({ message: "Course amount must be a valid non-negative number" });
         }
-        updateData.amount = parsedAmount;
     }
 
     try {
-        const docRef = db.collection("courses").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.course.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        await docRef.update(updateData);
+        await prisma.course.update({
+            where: { id },
+            data: {
+                ...(title !== undefined && { title: String(title).trim() }),
+                ...(description !== undefined && { description }),
+                ...(duration !== undefined && { duration }),
+                ...(instructor !== undefined && { instructor }),
+                ...(status !== undefined && { status }),
+                ...(parsedAmount !== undefined && { amount: parsedAmount })
+            }
+        });
         res.json({ message: "Course updated successfully" });
     } catch (error) {
         console.error("Failed to update course:", error);
@@ -197,13 +192,12 @@ export const deleteCourse = async (req: Request, res: Response) => {
     }
 
     try {
-        const docRef = db.collection("courses").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.course.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        await docRef.delete();
+        await prisma.course.delete({ where: { id } });
         res.json({ message: "Course deleted successfully" });
     } catch (error) {
         console.error("Failed to delete course:", error);
@@ -218,13 +212,14 @@ export const deleteCourse = async (req: Request, res: Response) => {
  */
 export const getDuas = async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection("duas").get();
-        const duas = snapshot.docs.map((doc: any) => ({
-            ...doc.data() as any,
-            id: doc.id,
-            _id: doc.id
+        const duas = await prisma.dua.findMany({
+            orderBy: { createdAt: "asc" }
+        });
+        const mappedDuas = duas.map((d) => ({
+            ...d,
+            _id: d.id
         }));
-        res.json(duas);
+        res.json(mappedDuas);
     } catch (error) {
         console.error("Failed to fetch duas:", error);
         res.status(500).json({ message: "Failed to fetch duas" });
@@ -236,21 +231,24 @@ export const getDuas = async (req: Request, res: Response) => {
  */
 export const createDua = async (req: Request, res: Response) => {
     try {
-        const { title } = req.body;
+        const { title, category, description, arabic, transliteration, meaning, reference } = req.body;
         if (!title || typeof title !== "string" || title.trim() === "") {
             return res.status(400).json({ message: "Dua title is required and must be a non-empty string" });
         }
 
-        const duaData = {
-            ...req.body,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        delete duaData._id;
-        delete duaData.id;
+        const created = await prisma.dua.create({
+            data: {
+                title: title.trim(),
+                category: category ?? "Daily Life",
+                description: description ?? null,
+                arabic: arabic ?? null,
+                transliteration: transliteration ?? null,
+                meaning: meaning ?? null,
+                reference: reference ?? null
+            }
+        });
 
-        const docRef = await db.collection("duas").add(duaData);
-        res.status(201).json({ message: "Dua created successfully", id: docRef.id, _id: docRef.id });
+        res.status(201).json({ message: "Dua created successfully", id: created.id, _id: created.id });
     } catch (error) {
         console.error("Failed to create dua:", error);
         res.status(500).json({ message: "Failed to create dua" });
@@ -266,18 +264,26 @@ export const updateDua = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const updateData = { ...req.body };
-    delete updateData._id;
-    delete updateData.id;
+    const { title, category, description, arabic, transliteration, meaning, reference } = req.body;
 
     try {
-        const docRef = db.collection("duas").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.dua.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Dua not found" });
         }
 
-        await docRef.update(updateData);
+        await prisma.dua.update({
+            where: { id },
+            data: {
+                ...(title !== undefined && { title: String(title).trim() }),
+                ...(category !== undefined && { category }),
+                ...(description !== undefined && { description }),
+                ...(arabic !== undefined && { arabic }),
+                ...(transliteration !== undefined && { transliteration }),
+                ...(meaning !== undefined && { meaning }),
+                ...(reference !== undefined && { reference }),
+            }
+        });
         res.json({ message: "Dua updated successfully" });
     } catch (error) {
         console.error("Failed to update dua:", error);
@@ -295,13 +301,12 @@ export const deleteDua = async (req: Request, res: Response) => {
     }
 
     try {
-        const docRef = db.collection("duas").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.dua.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Dua not found" });
         }
 
-        await docRef.delete();
+        await prisma.dua.delete({ where: { id } });
         res.json({ message: "Dua deleted successfully" });
     } catch (error) {
         console.error("Failed to delete dua:", error);
@@ -316,13 +321,14 @@ export const deleteDua = async (req: Request, res: Response) => {
  */
 export const getFeelings = async (req: Request, res: Response) => {
     try {
-        const snapshot = await db.collection("feelings").get();
-        const feelings = snapshot.docs.map((doc: any) => ({
-            ...doc.data() as any,
-            id: doc.id,
-            _id: doc.id
+        const feelings = await prisma.feeling.findMany({
+            orderBy: { createdAt: "asc" }
+        });
+        const mappedFeelings = feelings.map((f) => ({
+            ...f,
+            _id: f.id
         }));
-        res.json(feelings);
+        res.json(mappedFeelings);
     } catch (error) {
         console.error("Failed to fetch feelings:", error);
         res.status(500).json({ message: "Failed to fetch feelings" });
@@ -342,16 +348,14 @@ export const createFeeling = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Feeling icon is required and must be a non-empty string" });
         }
 
-        const feelingData = {
-            ...req.body,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        delete feelingData._id;
-        delete feelingData.id;
+        const created = await prisma.feeling.create({
+            data: {
+                label: label.trim(),
+                icon: icon.trim()
+            }
+        });
 
-        const docRef = await db.collection("feelings").add(feelingData);
-        res.status(201).json({ message: "Feeling created successfully", id: docRef.id, _id: docRef.id });
+        res.status(201).json({ message: "Feeling created successfully", id: created.id, _id: created.id });
     } catch (error) {
         console.error("Failed to create feeling:", error);
         res.status(500).json({ message: "Failed to create feeling" });
@@ -367,18 +371,21 @@ export const updateFeeling = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const updateData = { ...req.body };
-    delete updateData._id;
-    delete updateData.id;
+    const { label, icon } = req.body;
 
     try {
-        const docRef = db.collection("feelings").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.feeling.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Feeling not found" });
         }
 
-        await docRef.update(updateData);
+        await prisma.feeling.update({
+            where: { id },
+            data: {
+                ...(label !== undefined && { label: String(label).trim() }),
+                ...(icon !== undefined && { icon: String(icon).trim() }),
+            }
+        });
         res.json({ message: "Feeling updated successfully" });
     } catch (error) {
         console.error("Failed to update feeling:", error);
@@ -396,13 +403,12 @@ export const deleteFeeling = async (req: Request, res: Response) => {
     }
 
     try {
-        const docRef = db.collection("feelings").doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) {
+        const existing = await prisma.feeling.findUnique({ where: { id } });
+        if (!existing) {
             return res.status(404).json({ message: "Feeling not found" });
         }
 
-        await docRef.delete();
+        await prisma.feeling.delete({ where: { id } });
         res.json({ message: "Feeling deleted successfully" });
     } catch (error) {
         console.error("Failed to delete feeling:", error);
@@ -417,17 +423,17 @@ export const deleteFeeling = async (req: Request, res: Response) => {
  */
 export const getStats = async (req: Request, res: Response) => {
     try {
-        const [usersSnap, coursesSnap, duasSnap, feelingsSnap] = await Promise.all([
-            db.collection("users").count().get(),
-            db.collection("courses").count().get(),
-            db.collection("duas").count().get(),
-            db.collection("feelings").count().get(),
+        const [usersCount, coursesCount, duasCount, feelingsCount] = await Promise.all([
+            prisma.user.count(),
+            prisma.course.count(),
+            prisma.dua.count(),
+            prisma.feeling.count(),
         ]);
         res.json({
-            users: usersSnap.data().count,
-            courses: coursesSnap.data().count,
-            duas: duasSnap.data().count,
-            feelings: feelingsSnap.data().count
+            users: usersCount,
+            courses: coursesCount,
+            duas: duasCount,
+            feelings: feelingsCount
         });
     } catch (error) {
         console.error("Failed to fetch stats:", error);

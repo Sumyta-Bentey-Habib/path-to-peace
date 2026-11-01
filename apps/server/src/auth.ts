@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { betterAuth } from "better-auth";
-import { firestoreAdapter } from "better-auth-firestore";
-import { db } from "./db/firestore.js";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { prisma } from "./db/prisma.js";
 import { admin, bearer } from "better-auth/plugins";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -13,21 +13,9 @@ if (!process.env.BETTER_AUTH_SECRET) {
 
 export const auth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
-    database: firestoreAdapter({
-        firestore: db
+    database: prismaAdapter(prisma, {
+        provider: "postgresql",
     }),
-    user: {
-        modelName: "users"
-    },
-    session: {
-        modelName: "sessions"
-    },
-    account: {
-        modelName: "accounts"
-    },
-    verification: {
-        modelName: "verifications"
-    },
     plugins: [
         admin(),
         bearer()
@@ -36,6 +24,6 @@ export const auth = betterAuth({
         enabled: true
     },
     trustedOrigins: [
-  process.env.FRONTEND_URL!,
-],
+        process.env.FRONTEND_URL!,
+    ],
 });

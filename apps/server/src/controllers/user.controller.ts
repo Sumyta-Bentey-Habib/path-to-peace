@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { db } from "../db/firestore.js";
+import { prisma } from "../db/prisma.js";
 
 /**
  * Fetch the current user profile.
@@ -25,8 +25,11 @@ export const getProfile = async (req: Request, res: Response) => {
 export const setMeAsAdmin = async (req: Request, res: Response) => {
     const user = (req as any).user;
     try {
-        await db.collection("users").doc(user.id).update({
-            role: "admin"
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                role: "admin"
+            }
         });
         res.json({ message: "You are now an admin. Please refresh the page." });
     } catch (error) {
