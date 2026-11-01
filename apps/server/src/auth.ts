@@ -16,6 +16,12 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
+    advanced: {
+        defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+        },
+    },
     plugins: [
         admin(),
         bearer()
@@ -24,6 +30,8 @@ export const auth = betterAuth({
         enabled: true
     },
     trustedOrigins: [
-        process.env.FRONTEND_URL!,
+        process.env.FRONTEND_URL || "https://path-to-peace.vercel.app",
+        "https://path-to-peace.vercel.app",
+        "http://localhost:3000"
     ],
 });
