@@ -36,8 +36,26 @@ app.get("/", (req, res) => {
     res.json({ message: "Welcome to Path to Peace API" });
 });
 
-app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
+// --- Health Check Endpoint (Probes DB, Uptime & System Status) ---
+app.get(["/health", "/api/health"], async (req, res) => {
+    try {
+        const { prisma } = await import("./db/prisma.js");
+        await prisma.$queryRaw`SELECT 1`;
+        res.status(200).json({
+            status: "ok",
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor(process.uptime()),
+            database: "connected"
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: "error",
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor(process.uptime()),
+            database: "disconnected",
+            message: error instanceof Error ? error.message : "Database connection failed"
+        });
+    }
 });
 
 // --- API Router Mounting ---
